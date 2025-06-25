@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: project
+
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:13306/${secret.database}?useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${secret.username}
+    password: ${secret.password}
+
+mybatis:
+  mapper-locations: classpath:xml/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 한국투자증권 OpenAPI 설정
+kis:
+  api:
+    base-url: https://openapi.koreainvestment.com:9443
+    app-key: ${KIS_APP_KEY}
+    app-secret: ${KIS_APP_SECRET}
+    access-token: ${KIS_ACCESS_TOKEN}
+
+# 로깅 설정
+logging:
+  level:
+    trade.project.common.client: DEBUG
+    trade.project.api.client: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+
