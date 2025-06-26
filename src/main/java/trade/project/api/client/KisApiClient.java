@@ -8,6 +8,7 @@ import trade.project.common.client.BaseRestClient;
 import trade.project.common.dto.ApiResponse;
 import trade.project.common.exception.ApiException;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,15 +28,52 @@ public class KisApiClient {
     @Value("${kis.api.app-secret}")
     private String appSecret;
 
-    @Value("${kis.api.access-token}")
-    private String accessToken;
+    // 토큰 캐싱을 위한 필드
+    private String cachedAccessToken;
+    private LocalDateTime tokenExpiryTime;
+    private static final int TOKEN_EXPIRY_MINUTES = 23; // 24시간보다 조금 짧게 설정
+
+    // API 엔드포인트 상수
+    private static final String OAUTH_TOKEN_ENDPOINT = "/oauth2/tokenP";
+    private static final String STOCK_PRICE_ENDPOINT = "/uapi/domestic-stock/v1/quotations/inquire-price";
+    private static final String STOCK_DAILY_PRICE_ENDPOINT = "/uapi/domestic-stock/v1/quotations/inquire-daily-price";
+    private static final String STOCK_TRADE_HISTORY_ENDPOINT = "/uapi/domestic-stock/v1/trading/inquire-daily-ccld";
+    private static final String ACCOUNT_BALANCE_ENDPOINT = "/uapi/domestic-stock/v1/trading/inquire-balance";
+
+    // TR ID 상수
+    private static final String TR_ID_STOCK_PRICE = "FHKST01010100";
+    private static final String TR_ID_STOCK_DAILY = "FHKST01010400";
+    private static final String TR_ID_TRADE_HISTORY = "TTTC8001R";
+    private static final String TR_ID_ACCOUNT_BALANCE = "TTTC8434R";
 
     /**
-     * 한국투자증권 API 인증 토큰 발급
+     * 한국투자증권 API 인증 토큰 발급 (캐싱 포함)
      */
     public String getAccessToken() {
+        // 토큰이 유효한지 확인
+        if (isTokenValid()) {
+            return cachedAccessToken;
+        }
+
+        // 토큰 재발급
+        return refreshAccessToken();
+    }
+
+    /**
+     * 토큰 유효성 검사
+     */
+    private boolean isTokenValid() {
+        return cachedAccessToken != null && 
+               tokenExpiryTime != null && 
+               LocalDateTime.now().isBefore(tokenExpiryTime);
+    }
+
+    /**
+     * 토큰 재발급
+     */
+    private String refreshAccessToken() {
         try {
-            String url = baseUrl + "/oauth2/tokenP";
+            String url = baseUrl + OAUTH_TOKEN_ENDPOINT;
             
             Map<String, String> headers = new HashMap<>();
             headers.put("content-type", "application/json");
@@ -48,7 +86,11 @@ public class KisApiClient {
             Map<String, Object> response = baseRestClient.post(url, headers, requestBody, Map.class);
             
             if (response.containsKey("access_token")) {
-                return (String) response.get("access_token");
+                cachedAccessToken = (String) response.get("access_token");
+                tokenExpiryTime = LocalDateTime.now().plusMinutes(TOKEN_EXPIRY_MINUTES);
+                
+                log.info("토큰 재발급 완료, 만료시간: {}", tokenExpiryTime);
+                return cachedAccessToken;
             } else {
                 throw new ApiException("토큰 발급 실패: " + response);
             }
@@ -63,10 +105,10 @@ public class KisApiClient {
      */
     public Map<String, Object> getStockPrice(String stockCode) {
         try {
-            String url = baseUrl + "/uapi/domestic-stock/v1/quotations/inquire-price";
+            String url = baseUrl + STOCK_PRICE_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
-            headers.put("tr_id", "FHKST01010100");
+            headers.put("tr_id", TR_ID_STOCK_PRICE);
             
             Map<String, String> queryParams = new HashMap<>();
             queryParams.put("FID_COND_MRKT_DIV_CODE", "J");
@@ -86,10 +128,10 @@ public class KisApiClient {
      */
     public Map<String, Object> getStockDailyPrice(String stockCode, String startDate, String endDate) {
         try {
-            String url = baseUrl + "/uapi/domestic-stock/v1/quotations/inquire-daily-price";
+            String url = baseUrl + STOCK_DAILY_PRICE_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
-            headers.put("tr_id", "FHKST01010400");
+            headers.put("tr_id", TR_ID_STOCK_DAILY);
             
             Map<String, String> queryParams = new HashMap<>();
             queryParams.put("FID_COND_MRKT_DIV_CODE", "J");
@@ -112,10 +154,10 @@ public class KisApiClient {
      */
     public Map<String, Object> getStockTradeHistory(String stockCode, String startDate, String endDate) {
         try {
-            String url = baseUrl + "/uapi/domestic-stock/v1/trading/inquire-daily-ccld";
+            String url = baseUrl + STOCK_TRADE_HISTORY_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
-            headers.put("tr_id", "TTTC8001R");
+            headers.put("tr_id", TR_ID_TRADE_HISTORY);
             
             Map<String, String> queryParams = new HashMap<>();
             queryParams.put("FID_COND_MRKT_DIV_CODE", "J");
@@ -138,10 +180,10 @@ public class KisApiClient {
      */
     public Map<String, Object> getAccountBalance(String accountNumber) {
         try {
-            String url = baseUrl + "/uapi/domestic-stock/v1/trading/inquire-balance";
+            String url = baseUrl + ACCOUNT_BALANCE_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
-            headers.put("tr_id", "TTTC8434R");
+            headers.put("tr_id", TR_ID_ACCOUNT_BALANCE);
             
             Map<String, String> queryParams = new HashMap<>();
             queryParams.put("FID_COND_MRKT_DIV_CODE", "J");
@@ -164,7 +206,7 @@ public class KisApiClient {
      */
     private Map<String, String> getAuthHeaders() {
         Map<String, String> headers = new HashMap<>();
-        headers.put("authorization", "Bearer " + accessToken);
+        headers.put("authorization", "Bearer " + getAccessToken());
         headers.put("appkey", appKey);
         headers.put("appsecret", appSecret);
         headers.put("tr_id", "");

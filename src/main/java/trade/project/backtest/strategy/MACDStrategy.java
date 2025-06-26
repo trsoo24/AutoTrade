@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import trade.project.backtest.dto.BackTestRequest;
 import trade.project.backtest.dto.StockData;
+import trade.project.backtest.util.TechnicalIndicatorCalculator;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,93 +29,57 @@ public class MACDStrategy implements TradingStrategy {
         }
         
         // MACD 계산
-        currentData.calculateMACD(historicalData, fastPeriod, slowPeriod, signalPeriod);
+        TechnicalIndicatorCalculator.MACDResult currentMACD = TechnicalIndicatorCalculator.calculateMACD(
+                historicalData, fastPeriod, slowPeriod, signalPeriod);
         
-        if (currentData.getMacd() == null || currentData.getMacdSignal() == null) {
+        if (currentMACD == null) {
             return "HOLD";
         }
         
-        BigDecimal currentMACD = currentData.getMacd();
-        BigDecimal currentSignal = currentData.getMacdSignal();
-        BigDecimal currentHistogram = currentData.getMacdHistogram();
-        
-        // 이전 MACD 값들
-        BigDecimal previousMACD = null;
-        BigDecimal previousSignal = null;
-        BigDecimal previousHistogram = null;
-        
+        // 이전 MACD 값
+        TechnicalIndicatorCalculator.MACDResult prevMACD = null;
         if (historicalData.size() > 1) {
-            StockData prevData = historicalData.get(historicalData.size() - 2);
-            prevData.calculateMACD(historicalData.subList(0, historicalData.size() - 1), fastPeriod, slowPeriod, signalPeriod);
-            previousMACD = prevData.getMacd();
-            previousSignal = prevData.getMacdSignal();
-            previousHistogram = prevData.getMacdHistogram();
+            List<StockData> prevHistoricalData = historicalData.subList(0, historicalData.size() - 1);
+            prevMACD = TechnicalIndicatorCalculator.calculateMACD(
+                    prevHistoricalData, fastPeriod, slowPeriod, signalPeriod);
         }
         
-        // MACD 골든 크로스 (MACD가 시그널선을 상향 돌파)
-        if (previousMACD != null && previousSignal != null) {
-            boolean goldenCross = previousMACD.compareTo(previousSignal) <= 0 && 
-                                 currentMACD.compareTo(currentSignal) > 0;
+        // MACD가 시그널선을 상향 돌파 (매수 신호)
+        if (prevMACD != null && 
+            prevMACD.getMacd().compareTo(prevMACD.getMacdSignal()) <= 0 && 
+            currentMACD.getMacd().compareTo(currentMACD.getMacdSignal()) > 0) {
+            log.debug("MACD 매수 신호: MACD가 시그널선을 상향 돌파 (MACD: {}, Signal: {})", 
+                    currentMACD.getMacd(), currentMACD.getMacdSignal());
+            return "BUY";
+        }
+        
+        // MACD가 시그널선을 하향 돌파 (매도 신호)
+        if (prevMACD != null && 
+            prevMACD.getMacd().compareTo(prevMACD.getMacdSignal()) >= 0 && 
+            currentMACD.getMacd().compareTo(currentMACD.getMacdSignal()) < 0) {
+            log.debug("MACD 매도 신호: MACD가 시그널선을 하향 돌파 (MACD: {}, Signal: {})", 
+                    currentMACD.getMacd(), currentMACD.getMacdSignal());
+            return "SELL";
+        }
+        
+        // MACD 히스토그램 변화에 따른 신호
+        if (prevMACD != null) {
+            BigDecimal currentHistogram = currentMACD.getMacd().subtract(currentMACD.getMacdSignal());
+            BigDecimal prevHistogram = prevMACD.getMacd().subtract(prevMACD.getMacdSignal());
             
-            if (goldenCross) {
-                log.debug("MACD Golden Cross detected: MACD = {}, Signal = {}", currentMACD, currentSignal);
-                return "BUY";
-            }
-        }
-        
-        // MACD 데드 크로스 (MACD가 시그널선을 하향 돌파)
-        if (previousMACD != null && previousSignal != null) {
-            boolean deadCross = previousMACD.compareTo(previousSignal) >= 0 && 
-                               currentMACD.compareTo(currentSignal) < 0;
-            
-            if (deadCross) {
-                log.debug("MACD Dead Cross detected: MACD = {}, Signal = {}", currentMACD, currentSignal);
-                return "SELL";
-            }
-        }
-        
-        // 히스토그램 반전 신호
-        if (previousHistogram != null && currentHistogram != null) {
             // 히스토그램이 음수에서 양수로 전환 (매수 신호)
-            if (previousHistogram.compareTo(BigDecimal.ZERO) < 0 && 
+            if (prevHistogram.compareTo(BigDecimal.ZERO) <= 0 && 
                 currentHistogram.compareTo(BigDecimal.ZERO) > 0) {
-                log.debug("MACD Histogram positive reversal: Previous = {}, Current = {}", previousHistogram, currentHistogram);
+                log.debug("MACD 히스토그램 매수 신호: 음수에서 양수로 전환");
                 return "BUY";
             }
             
             // 히스토그램이 양수에서 음수로 전환 (매도 신호)
-            if (previousHistogram.compareTo(BigDecimal.ZERO) > 0 && 
+            if (prevHistogram.compareTo(BigDecimal.ZERO) >= 0 && 
                 currentHistogram.compareTo(BigDecimal.ZERO) < 0) {
-                log.debug("MACD Histogram negative reversal: Previous = {}, Current = {}", previousHistogram, currentHistogram);
+                log.debug("MACD 히스토그램 매도 신호: 양수에서 음수로 전환");
                 return "SELL";
             }
-        }
-        
-        // MACD가 0선을 상향 돌파 (매수 신호)
-        if (previousMACD != null && 
-            previousMACD.compareTo(BigDecimal.ZERO) < 0 && 
-            currentMACD.compareTo(BigDecimal.ZERO) > 0) {
-            log.debug("MACD Zero line bullish crossover: Previous = {}, Current = {}", previousMACD, currentMACD);
-            return "BUY";
-        }
-        
-        // MACD가 0선을 하향 돌파 (매도 신호)
-        if (previousMACD != null && 
-            previousMACD.compareTo(BigDecimal.ZERO) > 0 && 
-            currentMACD.compareTo(BigDecimal.ZERO) < 0) {
-            log.debug("MACD Zero line bearish crossover: Previous = {}, Current = {}", previousMACD, currentMACD);
-            return "SELL";
-        }
-        
-        // MACD와 시그널선의 위치에 따른 신호
-        if (currentMACD.compareTo(currentSignal) > 0 && currentMACD.compareTo(BigDecimal.ZERO) > 0) {
-            // MACD가 시그널선 위에 있고 0선 위에 있으면 매수 신호
-            return "BUY";
-        }
-        
-        if (currentMACD.compareTo(currentSignal) < 0 && currentMACD.compareTo(BigDecimal.ZERO) < 0) {
-            // MACD가 시그널선 아래에 있고 0선 아래에 있으면 매도 신호
-            return "SELL";
         }
         
         return "HOLD";
@@ -127,6 +92,6 @@ public class MACDStrategy implements TradingStrategy {
     
     @Override
     public String getStrategyDescription() {
-        return "Moving Average Convergence Divergence Strategy - MACD가 시그널선을 상향 돌파할 때 매수, 하향 돌파할 때 매도";
+        return "Moving Average Convergence Divergence Strategy";
     }
 } 

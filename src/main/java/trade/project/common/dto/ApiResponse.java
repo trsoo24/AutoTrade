@@ -19,6 +19,12 @@ public class ApiResponse<T> {
     @JsonProperty("error_message")
     private String errorMessage;
     
+    // 테스트 호환성을 위한 success 필드
+    @JsonProperty("success")
+    public boolean isSuccess() {
+        return "success".equals(status);
+    }
+    
     public static <T> ApiResponse<T> success(T data) {
         ApiResponse<T> response = new ApiResponse<>();
         response.setStatus("success");

@@ -68,4 +68,35 @@ public class BackTestRequest {
                 .includeTax(true)
                 .build();
     }
+    
+    /**
+     * 현재 요청에 기본값을 적용합니다.
+     * @return 기본값이 적용된 새로운 BackTestRequest 객체
+     */
+    public BackTestRequest applyDefaults() {
+        BackTestRequest defaultRequest = getDefault();
+        
+        return BackTestRequest.builder()
+                .stockCode(this.stockCode)
+                .startDate(this.startDate)
+                .endDate(this.endDate)
+                .initialCapital(this.initialCapital)
+                .commission(this.commission != null ? this.commission : defaultRequest.getCommission())
+                .strategy(this.strategy != null ? this.strategy : defaultRequest.getStrategy())
+                .shortPeriod(this.shortPeriod != null ? this.shortPeriod : defaultRequest.getShortPeriod())
+                .longPeriod(this.longPeriod != null ? this.longPeriod : defaultRequest.getLongPeriod())
+                .rsiPeriod(this.rsiPeriod != null ? this.rsiPeriod : defaultRequest.getRsiPeriod())
+                .rsiOverbought(this.rsiOverbought != null ? this.rsiOverbought : defaultRequest.getRsiOverbought())
+                .rsiOversold(this.rsiOversold != null ? this.rsiOversold : defaultRequest.getRsiOversold())
+                .macdFastPeriod(this.macdFastPeriod != null ? this.macdFastPeriod : defaultRequest.getMacdFastPeriod())
+                .macdSlowPeriod(this.macdSlowPeriod != null ? this.macdSlowPeriod : defaultRequest.getMacdSlowPeriod())
+                .macdSignalPeriod(this.macdSignalPeriod != null ? this.macdSignalPeriod : defaultRequest.getMacdSignalPeriod())
+                .stopLoss(this.stopLoss != null ? this.stopLoss : defaultRequest.getStopLoss())
+                .takeProfit(this.takeProfit != null ? this.takeProfit : defaultRequest.getTakeProfit())
+                .maxPositionSize(this.maxPositionSize != null ? this.maxPositionSize : defaultRequest.getMaxPositionSize())
+                .minTradeAmount(this.minTradeAmount != null ? this.minTradeAmount : defaultRequest.getMinTradeAmount())
+                .reinvestDividends(this.reinvestDividends != null ? this.reinvestDividends : defaultRequest.getReinvestDividends())
+                .includeTax(this.includeTax != null ? this.includeTax : defaultRequest.getIncludeTax())
+                .build();
+    }
 } 

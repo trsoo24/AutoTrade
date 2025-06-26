@@ -46,8 +46,16 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 //    developmentOnly 'org.springframework.ai:spring-ai-spring-boot-docker-compose'
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+    
+    // 테스트 의존성
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webflux'
+    testImplementation 'io.projectreactor:reactor-test'
+    testImplementation 'com.h2database:h2'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mongodb'
+    testImplementation 'org.testcontainers:mariadb'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
@@ -60,6 +68,16 @@ dependencyManagement {
 tasks.named('test') {
     outputs.dir snippetsDir
     useJUnitPlatform()
+    
+    // 테스트 설정
+    systemProperty 'spring.profiles.active', 'test'
+    
+    // 테스트 결과 출력
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat = 'full'
+        showStandardStreams = true
+    }
 }
 
 tasks.named('asciidoctor') {

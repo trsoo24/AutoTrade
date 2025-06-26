@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import trade.project.backtest.dto.*;
 import trade.project.backtest.strategy.StrategyFactory;
 import trade.project.backtest.strategy.TradingStrategy;
+import trade.project.backtest.util.TechnicalIndicatorCalculator;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,6 +29,15 @@ public class BacktestEngine {
      * @return 백트래킹 결과
      */
     public BackTestResult runBacktest(BackTestRequest request, List<StockData> stockDataList) {
+        // null 체크
+        if (request == null) {
+            throw new IllegalArgumentException("백트래킹 요청이 null입니다");
+        }
+        
+        if (stockDataList == null || stockDataList.isEmpty()) {
+            throw new IllegalArgumentException("주식 데이터가 비어있습니다");
+        }
+        
         log.info("백트래킹 시작: {} - {} to {}", request.getStockCode(), request.getStartDate(), request.getEndDate());
         
         // 전략 가져오기
@@ -76,27 +86,41 @@ public class BacktestEngine {
      */
     private void calculateTechnicalIndicators(StockData currentData, List<StockData> historicalData, BackTestRequest request) {
         // 이동평균선 계산
-        currentData.calculateSMA(historicalData, 5);
-        currentData.calculateSMA(historicalData, 10);
-        currentData.calculateSMA(historicalData, 20);
-        currentData.calculateSMA(historicalData, 50);
-        currentData.calculateSMA(historicalData, 200);
+        currentData.setSma5(TechnicalIndicatorCalculator.calculateSMA(historicalData, 5));
+        currentData.setSma10(TechnicalIndicatorCalculator.calculateSMA(historicalData, 10));
+        currentData.setSma20(TechnicalIndicatorCalculator.calculateSMA(historicalData, 20));
+        currentData.setSma50(TechnicalIndicatorCalculator.calculateSMA(historicalData, 50));
+        currentData.setSma200(TechnicalIndicatorCalculator.calculateSMA(historicalData, 200));
         
         // RSI 계산
-        currentData.calculateRSI(historicalData, request.getRsiPeriod() != null ? request.getRsiPeriod() : 14);
+        currentData.setRsi(TechnicalIndicatorCalculator.calculateRSI(historicalData, 
+                request.getRsiPeriod() != null ? request.getRsiPeriod() : 14));
         
         // MACD 계산
-        currentData.calculateMACD(historicalData, 
+        TechnicalIndicatorCalculator.MACDResult macdResult = TechnicalIndicatorCalculator.calculateMACD(historicalData, 
                 request.getMacdFastPeriod() != null ? request.getMacdFastPeriod() : 12,
                 request.getMacdSlowPeriod() != null ? request.getMacdSlowPeriod() : 26,
                 request.getMacdSignalPeriod() != null ? request.getMacdSignalPeriod() : 9);
         
+        if (macdResult != null) {
+            currentData.setEma12(macdResult.getEma12());
+            currentData.setEma26(macdResult.getEma26());
+            currentData.setMacd(macdResult.getMacd());
+            currentData.setMacdSignal(macdResult.getMacdSignal());
+            currentData.setMacdHistogram(macdResult.getMacdHistogram());
+        }
+        
         // 볼린저 밴드 계산
-        currentData.calculateBollingerBands(historicalData, 20, 2.0);
+        TechnicalIndicatorCalculator.BollingerBandsResult bbResult = TechnicalIndicatorCalculator.calculateBollingerBands(historicalData, 20, 2.0);
+        if (bbResult != null) {
+            currentData.setBollingerUpper(bbResult.getUpper());
+            currentData.setBollingerMiddle(bbResult.getMiddle());
+            currentData.setBollingerLower(bbResult.getLower());
+        }
         
         // 일일 수익률 계산
         if (historicalData.size() > 1) {
-            currentData.calculateDailyReturn(historicalData.get(historicalData.size() - 2));
+            currentData.setDailyReturn(TechnicalIndicatorCalculator.calculateDailyReturn(currentData, historicalData.get(historicalData.size() - 2)));
         }
     }
     

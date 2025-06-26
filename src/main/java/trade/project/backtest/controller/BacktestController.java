@@ -31,15 +31,8 @@ public class BacktestController {
     public ApiResponse<BackTestResult> runBacktest(@RequestBody BackTestRequest request) {
         try {
             log.info("백트래킹 요청: {}", request);
-            
-            // 요청 유효성 검사
-            backtestService.validateRequest(request);
-            
-            // 백트래킹 실행
             BackTestResult result = backtestService.runBacktest(request);
-            
             return ApiResponse.success(result);
-            
         } catch (IllegalArgumentException e) {
             log.warn("백트래킹 요청 유효성 검사 실패: {}", e.getMessage());
             return ApiResponse.error("VALIDATION_ERROR", e.getMessage());
@@ -75,26 +68,7 @@ public class BacktestController {
                     .initialCapital(initialCapital)
                     .build();
             
-            // 기본값 설정
-            BackTestRequest defaultRequest = BackTestRequest.getDefault();
-            if (request.getCommission() == null) request.setCommission(defaultRequest.getCommission());
-            if (request.getShortPeriod() == null) request.setShortPeriod(defaultRequest.getShortPeriod());
-            if (request.getLongPeriod() == null) request.setLongPeriod(defaultRequest.getLongPeriod());
-            if (request.getRsiPeriod() == null) request.setRsiPeriod(defaultRequest.getRsiPeriod());
-            if (request.getRsiOverbought() == null) request.setRsiOverbought(defaultRequest.getRsiOverbought());
-            if (request.getRsiOversold() == null) request.setRsiOversold(defaultRequest.getRsiOversold());
-            if (request.getMacdFastPeriod() == null) request.setMacdFastPeriod(defaultRequest.getMacdFastPeriod());
-            if (request.getMacdSlowPeriod() == null) request.setMacdSlowPeriod(defaultRequest.getMacdSlowPeriod());
-            if (request.getMacdSignalPeriod() == null) request.setMacdSignalPeriod(defaultRequest.getMacdSignalPeriod());
-            if (request.getStopLoss() == null) request.setStopLoss(defaultRequest.getStopLoss());
-            if (request.getTakeProfit() == null) request.setTakeProfit(defaultRequest.getTakeProfit());
-            if (request.getMaxPositionSize() == null) request.setMaxPositionSize(defaultRequest.getMaxPositionSize());
-            if (request.getMinTradeAmount() == null) request.setMinTradeAmount(defaultRequest.getMinTradeAmount());
-            if (request.getReinvestDividends() == null) request.setReinvestDividends(defaultRequest.getReinvestDividends());
-            if (request.getIncludeTax() == null) request.setIncludeTax(defaultRequest.getIncludeTax());
-            
             return runBacktest(request);
-            
         } catch (Exception e) {
             log.error("간단한 백트래킹 실행 중 오류 발생: {}", e.getMessage(), e);
             return ApiResponse.error("BACKTEST_ERROR", e.getMessage());
@@ -112,7 +86,7 @@ public class BacktestController {
             return ApiResponse.success(strategies);
         } catch (Exception e) {
             log.error("전략 목록 조회 중 오류 발생: {}", e.getMessage(), e);
-            return ApiResponse.error("STRATEGY_ERROR", e.getMessage());
+            throw new RuntimeException("전략 목록 조회 실패", e);
         }
     }
     

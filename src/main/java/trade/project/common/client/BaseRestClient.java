@@ -30,6 +30,9 @@ public class BaseRestClient {
      * GET 요청을 수행합니다.
      */
     public <T> T get(String url, Class<T> responseType) {
+        if (url == null) {
+            throw new IllegalArgumentException("URL은 null일 수 없습니다");
+        }
         return get(url, null, responseType);
     }
 
@@ -37,6 +40,9 @@ public class BaseRestClient {
      * 헤더와 함께 GET 요청을 수행합니다.
      */
     public <T> T get(String url, Map<String, String> headers, Class<T> responseType) {
+        if (url == null) {
+            throw new IllegalArgumentException("URL은 null일 수 없습니다");
+        }
         return executeRequest(url, HttpMethod.GET, headers, null, responseType);
     }
 
@@ -44,6 +50,12 @@ public class BaseRestClient {
      * POST 요청을 수행합니다.
      */
     public <T> T post(String url, Object requestBody, Class<T> responseType) {
+        if (url == null) {
+            throw new IllegalArgumentException("URL은 null일 수 없습니다");
+        }
+        if (requestBody == null) {
+            throw new IllegalArgumentException("요청 본문은 null일 수 없습니다");
+        }
         return post(url, null, requestBody, responseType);
     }
 
@@ -51,6 +63,12 @@ public class BaseRestClient {
      * 헤더와 함께 POST 요청을 수행합니다.
      */
     public <T> T post(String url, Map<String, String> headers, Object requestBody, Class<T> responseType) {
+        if (url == null) {
+            throw new IllegalArgumentException("URL은 null일 수 없습니다");
+        }
+        if (requestBody == null) {
+            throw new IllegalArgumentException("요청 본문은 null일 수 없습니다");
+        }
         return executeRequest(url, HttpMethod.POST, headers, requestBody, responseType);
     }
 
@@ -163,13 +181,10 @@ public class BaseRestClient {
      * WebClient 예외 처리
      */
     private ApiException handleWebClientException(WebClientResponseException ex) {
-        log.error("WebClient 예외: {} - {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-        return new ApiException(
-            "API 호출 실패: " + ex.getStatusCode() + " - " + ex.getResponseBodyAsString(),
-            "HTTP_ERROR",
-            ex.getStatusCode().value(),
-            ex
-        );
+        log.error("WebClient 예외: {} - {}", ex.getStatusCode(), maskSensitiveInfo(ex.getResponseBodyAsString()));
+        
+        String errorMessage = String.format("API 호출 실패 (HTTP %d)", ex.getStatusCode().value());
+        return new ApiException(errorMessage, "HTTP_ERROR", ex.getStatusCode().value(), ex);
     }
 
     /**
@@ -177,6 +192,18 @@ public class BaseRestClient {
      */
     private ApiException handleGenericException(Exception ex) {
         log.error("일반 예외: {}", ex.getMessage());
-        return new ApiException("API 호출 중 예외 발생: " + ex.getMessage(), ex);
+        return new ApiException("API 호출 중 예외 발생", ex);
+    }
+    
+    /**
+     * 민감한 정보를 마스킹합니다.
+     */
+    private String maskSensitiveInfo(String responseBody) {
+        if (responseBody == null || responseBody.length() < 100) {
+            return responseBody;
+        }
+        
+        // 응답이 너무 길면 앞부분만 표시하고 나머지는 마스킹
+        return responseBody.substring(0, 100) + "... [마스킹됨]";
     }
 } 

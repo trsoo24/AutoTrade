@@ -36,15 +36,21 @@ public class BacktestService {
         log.info("백트래킹 서비스 시작: {}", request.getStockCode());
         
         try {
+            // 요청 유효성 검사
+            validateRequest(request);
+            
+            // 기본값 적용
+            BackTestRequest processedRequest = request.applyDefaults();
+            
             // 주식 데이터 조회
-            List<StockData> stockDataList = getStockData(request);
+            List<StockData> stockDataList = getStockData(processedRequest);
             
             if (stockDataList.isEmpty()) {
-                throw new RuntimeException("주식 데이터를 찾을 수 없습니다: " + request.getStockCode());
+                throw new RuntimeException("주식 데이터를 찾을 수 없습니다: " + processedRequest.getStockCode());
             }
             
             // 백트래킹 실행
-            BackTestResult result = backtestEngine.runBacktest(request, stockDataList);
+            BackTestResult result = backtestEngine.runBacktest(processedRequest, stockDataList);
             
             log.info("백트래킹 완료: 수익률 = {}%, 거래 횟수 = {}", 
                     result.getTotalReturnPercent(), result.getTotalTrades());
@@ -187,9 +193,11 @@ public class BacktestService {
      */
     public List<Map<String, String>> getAvailableStrategies() {
         return strategyFactory.getAvailableStrategies().stream()
+                .filter(strategy -> strategy != null && strategy.getStrategyName() != null)
                 .map(strategy -> Map.of(
                         "name", strategy.getStrategyName(),
-                        "description", strategy.getStrategyDescription()
+                        "description", strategy.getStrategyDescription() != null ? 
+                                strategy.getStrategyDescription() : "설명 없음"
                 ))
                 .collect(java.util.stream.Collectors.toList());
     }

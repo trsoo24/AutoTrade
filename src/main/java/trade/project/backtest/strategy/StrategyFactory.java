@@ -1,32 +1,40 @@
 package trade.project.backtest.strategy;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import jakarta.annotation.PostConstruct;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StrategyFactory {
     
     private final List<TradingStrategy> strategies;
     
-    private Map<String, TradingStrategy> strategyMap;
+    private final Map<String, TradingStrategy> strategyMap = new ConcurrentHashMap<>();
     
     /**
      * 전략 맵을 초기화합니다.
      */
-    private void initializeStrategyMap() {
-        if (strategyMap == null) {
-            strategyMap = strategies.stream()
-                    .collect(Collectors.toMap(
-                            TradingStrategy::getStrategyName,
-                            Function.identity()
-                    ));
+    @PostConstruct
+    public void initializeStrategyMap() {
+        log.info("전략 팩토리 초기화 시작 - {} 개의 전략 로드", strategies.size());
+        
+        for (TradingStrategy strategy : strategies) {
+            if (strategy.getStrategyName() != null) {
+                String strategyName = strategy.getStrategyName().toUpperCase();
+                strategyMap.put(strategyName, strategy);
+                log.info("전략 등록: {} - {}", strategyName, strategy.getStrategyDescription());
+            }
         }
+        
+        log.info("전략 팩토리 초기화 완료 - {} 개의 전략 등록됨", strategyMap.size());
     }
     
     /**
@@ -35,7 +43,9 @@ public class StrategyFactory {
      * @return 전략 객체
      */
     public TradingStrategy getStrategy(String strategyName) {
-        initializeStrategyMap();
+        if (strategyName == null) {
+            return null;
+        }
         return strategyMap.get(strategyName.toUpperCase());
     }
     
@@ -52,7 +62,8 @@ public class StrategyFactory {
      * @return 전략 이름 목록
      */
     public List<String> getStrategyNames() {
-        initializeStrategyMap();
-        return strategyMap.keySet().stream().collect(Collectors.toList());
+        return strategyMap.keySet().stream()
+                .sorted()
+                .collect(Collectors.toList());
     }
 } 

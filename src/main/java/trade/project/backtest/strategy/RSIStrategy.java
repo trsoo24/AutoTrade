@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import trade.project.backtest.dto.BackTestRequest;
 import trade.project.backtest.dto.StockData;
+import trade.project.backtest.util.TechnicalIndicatorCalculator;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,68 +29,42 @@ public class RSIStrategy implements TradingStrategy {
         }
         
         // RSI 계산
-        currentData.calculateRSI(historicalData, rsiPeriod);
+        BigDecimal currentRSI = TechnicalIndicatorCalculator.calculateRSI(historicalData, rsiPeriod);
         
-        if (currentData.getRsi() == null) {
+        if (currentRSI == null) {
             return "HOLD";
         }
         
-        BigDecimal currentRSI = currentData.getRsi();
-        
         // 이전 RSI 값
-        BigDecimal previousRSI = null;
+        BigDecimal prevRSI = null;
         if (historicalData.size() > 1) {
-            StockData prevData = historicalData.get(historicalData.size() - 2);
-            prevData.calculateRSI(historicalData.subList(0, historicalData.size() - 1), rsiPeriod);
-            previousRSI = prevData.getRsi();
+            List<StockData> prevHistoricalData = historicalData.subList(0, historicalData.size() - 1);
+            prevRSI = TechnicalIndicatorCalculator.calculateRSI(prevHistoricalData, rsiPeriod);
         }
         
-        // 과매도 구간에서 상승 반전 (매수 신호)
-        if (previousRSI != null && 
-            previousRSI.compareTo(BigDecimal.valueOf(oversold)) <= 0 && 
+        // 과매도 상태에서 반등 (매수 신호)
+        if (prevRSI != null && prevRSI.compareTo(BigDecimal.valueOf(oversold)) <= 0 && 
             currentRSI.compareTo(BigDecimal.valueOf(oversold)) > 0) {
-            log.debug("RSI Oversold reversal detected: Previous RSI = {}, Current RSI = {}", previousRSI, currentRSI);
+            log.debug("RSI 매수 신호: RSI가 과매도 구간에서 반등 ({} -> {})", prevRSI, currentRSI);
             return "BUY";
         }
         
-        // 과매수 구간에서 하락 반전 (매도 신호)
-        if (previousRSI != null && 
-            previousRSI.compareTo(BigDecimal.valueOf(overbought)) >= 0 && 
+        // 과매수 상태에서 하락 (매도 신호)
+        if (prevRSI != null && prevRSI.compareTo(BigDecimal.valueOf(overbought)) >= 0 && 
             currentRSI.compareTo(BigDecimal.valueOf(overbought)) < 0) {
-            log.debug("RSI Overbought reversal detected: Previous RSI = {}, Current RSI = {}", previousRSI, currentRSI);
+            log.debug("RSI 매도 신호: RSI가 과매수 구간에서 하락 ({} -> {})", prevRSI, currentRSI);
             return "SELL";
         }
         
-        // RSI가 과매도 구간에 있을 때 (매수 신호)
+        // 현재 RSI 값에 따른 신호
         if (currentRSI.compareTo(BigDecimal.valueOf(oversold)) <= 0) {
-            log.debug("RSI Oversold condition: RSI = {}", currentRSI);
+            log.debug("RSI 과매도 상태: {}", currentRSI);
             return "BUY";
         }
         
-        // RSI가 과매수 구간에 있을 때 (매도 신호)
         if (currentRSI.compareTo(BigDecimal.valueOf(overbought)) >= 0) {
-            log.debug("RSI Overbought condition: RSI = {}", currentRSI);
+            log.debug("RSI 과매수 상태: {}", currentRSI);
             return "SELL";
-        }
-        
-        // RSI 중립 구간 (30-70)에서의 신호
-        BigDecimal neutralUpper = BigDecimal.valueOf(60);
-        BigDecimal neutralLower = BigDecimal.valueOf(40);
-        
-        // RSI가 중립 상단에서 하락할 때 (매도 신호)
-        if (previousRSI != null && 
-            previousRSI.compareTo(neutralUpper) >= 0 && 
-            currentRSI.compareTo(neutralUpper) < 0) {
-            log.debug("RSI Neutral upper reversal: Previous RSI = {}, Current RSI = {}", previousRSI, currentRSI);
-            return "SELL";
-        }
-        
-        // RSI가 중립 하단에서 상승할 때 (매수 신호)
-        if (previousRSI != null && 
-            previousRSI.compareTo(neutralLower) <= 0 && 
-            currentRSI.compareTo(neutralLower) > 0) {
-            log.debug("RSI Neutral lower reversal: Previous RSI = {}, Current RSI = {}", previousRSI, currentRSI);
-            return "BUY";
         }
         
         return "HOLD";
@@ -102,6 +77,6 @@ public class RSIStrategy implements TradingStrategy {
     
     @Override
     public String getStrategyDescription() {
-        return "Relative Strength Index Strategy - RSI가 과매도 구간에서 상승 반전할 때 매수, 과매수 구간에서 하락 반전할 때 매도";
+        return "Relative Strength Index Strategy";
     }
 } 

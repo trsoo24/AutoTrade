@@ -1,0 +1,142 @@
+spring:
+  profiles:
+    active: test
+  
+  # 테스트용 데이터베이스 설정 (필요시)
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.H2Dialect
+
+# 한국투자증권 API 테스트 설정
+kis:
+  api:
+    base-url: https://test.api.com
+    app-key: test-app-key
+    app-secret: test-app-secret
+    timeout: 5000
+
+# 로깅 설정
+logging:
+  level:
+    trade.project: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 테스트용 설정
+test:
+  # 테스트 데이터 설정
+  data:
+    sample-stock-code: "005930"
+    sample-start-date: "2024-01-01"
+    sample-end-date: "2024-01-31"
+    sample-initial-capital: 10000000
+  
+  # 테스트 전략 설정
+  strategy:
+    default: "SMA"
+    available-strategies:
+      - "SMA"
+      - "RSI"
+      - "MACD"
+  
+  # 테스트 백트래킹 설정
+  backtest:
+    commission: 0.001
+    short-period: 5
+    long-period: 20
+    rsi-period: 14
+    rsi-overbought: 70
+    rsi-oversold: 30
+    macd-fast-period: 12
+    macd-slow-period: 26
+    macd-signal-period: 9
+    stop-loss: 0.05
+    take-profit: 0.10
+    max-position-size: 0.5
+    min-trade-amount: 100000
+    reinvest-dividends: true
+    include-tax: true
+
+# WebClient 테스트 설정
+webclient:
+  timeout:
+    connect: 5000
+    read: 10000
+  retry:
+    max-attempts: 3
+    backoff:
+      initial: 1000
+      max: 5000
+      multiplier: 2.0
+
+# 캐시 테스트 설정
+cache:
+  token:
+    ttl: 3600 # 1시간
+    max-size: 100
+  data:
+    ttl: 300 # 5분
+    max-size: 1000
+
+# 보안 테스트 설정
+security:
+  # 테스트용 JWT 설정
+  jwt:
+    secret: test-jwt-secret-key-for-testing-purposes-only
+    expiration: 3600000 # 1시간
+    
+  # CORS 테스트 설정
+  cors:
+    allowed-origins:
+      - "http://localhost:3000"
+      - "http://localhost:8080"
+    allowed-methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowed-headers:
+      - "*"
+    allow-credentials: true
+    max-age: 3600
+
+# 모니터링 테스트 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: false
+
+# 스케줄링 테스트 설정
+scheduling:
+  enabled: false # 테스트에서는 스케줄링 비활성화
+  pool-size: 5
+
+# 비동기 처리 테스트 설정
+async:
+  core-pool-size: 2
+  max-pool-size: 4
+  queue-capacity: 100
+  thread-name-prefix: "test-async-" 

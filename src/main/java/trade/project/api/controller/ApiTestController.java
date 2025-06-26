@@ -27,7 +27,7 @@ public class ApiTestController {
             return ApiResponse.success(token);
         } catch (Exception e) {
             log.error("토큰 발급 테스트 실패: {}", e.getMessage());
-            return ApiResponse.error("TOKEN_ERROR", e.getMessage());
+            return ApiResponse.error("TOKEN_ERROR", "토큰 발급에 실패했습니다.");
         }
     }
 
@@ -41,7 +41,7 @@ public class ApiTestController {
             return ApiResponse.success(result);
         } catch (Exception e) {
             log.error("주식 현재가 조회 테스트 실패: {}", e.getMessage());
-            return ApiResponse.error("STOCK_PRICE_ERROR", e.getMessage());
+            return ApiResponse.error("STOCK_PRICE_ERROR", "주식 현재가 조회에 실패했습니다.");
         }
     }
 
@@ -58,7 +58,7 @@ public class ApiTestController {
             return ApiResponse.success(result);
         } catch (Exception e) {
             log.error("주식 일자별 시세 조회 테스트 실패: {}", e.getMessage());
-            return ApiResponse.error("STOCK_DAILY_ERROR", e.getMessage());
+            return ApiResponse.error("STOCK_DAILY_ERROR", "주식 일자별 시세 조회에 실패했습니다.");
         }
     }
 
@@ -75,7 +75,7 @@ public class ApiTestController {
             return ApiResponse.success(result);
         } catch (Exception e) {
             log.error("주식 체결 내역 조회 테스트 실패: {}", e.getMessage());
-            return ApiResponse.error("STOCK_HISTORY_ERROR", e.getMessage());
+            return ApiResponse.error("STOCK_HISTORY_ERROR", "주식 체결 내역 조회에 실패했습니다.");
         }
     }
 
@@ -89,7 +89,7 @@ public class ApiTestController {
             return ApiResponse.success(result);
         } catch (Exception e) {
             log.error("계좌 잔고 조회 테스트 실패: {}", e.getMessage());
-            return ApiResponse.error("ACCOUNT_BALANCE_ERROR", e.getMessage());
+            return ApiResponse.error("ACCOUNT_BALANCE_ERROR", "계좌 잔고 조회에 실패했습니다.");
         }
     }
 

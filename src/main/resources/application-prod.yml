@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: project
+
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:trade_prod}?useSSL=true&allowPublicKeyRetrieval=true&useUnicode=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+mybatis:
+  mapper-locations: classpath:xml/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 한국투자증권 OpenAPI 설정 (운영용)
+kis:
+  api:
+    base-url: https://openapi.koreainvestment.com:9443
+    app-key: ${KIS_APP_KEY}
+    app-secret: ${KIS_APP_SECRET}
+
+# 로깅 설정 (운영용 - 최소 로그)
+logging:
+  level:
+    trade.project: INFO
+    trade.project.common.client: WARN
+    trade.project.api.client: WARN
+    org.springframework.web.reactive.function.client: WARN
+    root: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/application.log
+    max-size: 100MB
+    max-history: 30 
