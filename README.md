@@ -1,14 +1,23 @@
 # Trade Project
 
-한국투자증권 API를 활용한 주식 백트래킹 시스템
+모의 투자 시스템을 위한 Spring Boot 프로젝트입니다.
 
 ## 🚀 주요 기능
 
-- **한국투자증권 API 연동**: 실시간 주식 데이터 조회
-- **다양한 거래 전략**: SMA, RSI, MACD 전략 지원
-- **백트래킹 엔진**: 과거 데이터를 통한 전략 성과 분석
-- **기술적 지표 계산**: 이동평균, RSI, MACD, 볼린저 밴드 등
-- **성과 분석**: 수익률, 최대 낙폭, 샤프 비율 등 다양한 지표
+### 1. 사용자 관리 시스템
+- **회원가입**: 사용자명, 이메일, 비밀번호 등록
+- **로그인**: 사용자명 또는 이메일로 로그인
+- **회원 탈퇴**: 계정 비활성화 처리
+- **중복 확인**: 사용자명/이메일 중복 확인
+
+### 2. 백테스팅 시스템
+- **기술적 지표**: MACD, RSI, SMA 전략
+- **백테스팅 엔진**: 과거 데이터 기반 전략 검증
+- **결과 분석**: 수익률, 최대 낙폭 등 분석
+
+### 3. API 연동
+- **한국투자증권 API**: 실시간 시세 데이터 수집
+- **RESTful API**: 표준화된 API 인터페이스
 
 ## 🏗️ 아키텍처
 
@@ -18,11 +27,11 @@ src/main/java/trade/project/
 ├── api/                    # API 관련
 │   ├── client/            # 외부 API 클라이언트
 │   └── controller/        # REST API 컨트롤러
-├── backtest/              # 백트래킹 관련
-│   ├── controller/        # 백트래킹 API 컨트롤러
+├── backtest/              # 백테스팅 관련
+│   ├── controller/        # 백테스팅 API 컨트롤러
 │   ├── dto/              # 데이터 전송 객체
-│   ├── engine/           # 백트래킹 엔진
-│   ├── service/          # 백트래킹 서비스
+│   ├── engine/           # 백테스팅 엔진
+│   ├── service/          # 백테스팅 서비스
 │   ├── strategy/         # 거래 전략
 │   └── util/             # 유틸리티 (기술적 지표 계산)
 └── common/               # 공통 모듈
@@ -30,6 +39,13 @@ src/main/java/trade/project/
     ├── config/           # 설정
     ├── dto/              # 공통 DTO
     └── exception/        # 예외 처리
+└── user/                 # 사용자 관리
+    ├── controller/       # 사용자 컨트롤러
+    ├── dto/             # 사용자 DTO
+    ├── entity/          # 사용자 엔티티
+    ├── repository/      # 사용자 리포지토리
+    ├── service/         # 사용자 서비스
+    └── exception/       # 사용자 예외
 ```
 
 ## 🔧 기술 스택
@@ -37,8 +53,10 @@ src/main/java/trade/project/
 - **Spring Boot 2.7+**
 - **Spring WebFlux** (WebClient)
 - **Lombok**
-- **MariaDB**
+- **MySQL**
 - **MyBatis**
+- **Spring Security**
+- **Spring Data JPA**
 
 ## 📋 환경 설정
 
@@ -54,6 +72,11 @@ export DB_PORT="3306"
 export DB_NAME="trade_prod"
 export DB_USERNAME="your_username"
 export DB_PASSWORD="your_password"
+
+# MongoDB 설정
+export MONGODB_HOST="localhost"
+export MONGODB_PORT="27017"
+export MONGODB_DATABASE="trade_project"
 ```
 
 ### 2. 프로파일 설정
@@ -71,9 +94,57 @@ export DB_PASSWORD="your_password"
 
 ## 📊 API 엔드포인트
 
-### 백트래킹 API
-- `POST /api/backtest/run` - 백트래킹 실행
-- `GET /api/backtest/run` - 간단한 백트래킹 실행
+### 사용자 관리 API
+
+#### 회원가입
+```bash
+POST /api/users/signup
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "TestPass123!",
+  "confirmPassword": "TestPass123!",
+  "realName": "테스트 사용자",
+  "phone": "010-1234-5678"
+}
+```
+
+#### 로그인
+```bash
+POST /api/users/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "TestPass123!"
+}
+```
+
+#### 사용자 정보 조회
+```bash
+GET /api/users/{userId}
+```
+
+#### 회원 탈퇴
+```bash
+DELETE /api/users/{userId}
+```
+
+#### 사용자명 중복 확인
+```bash
+GET /api/users/check-username?username=testuser
+```
+
+#### 이메일 중복 확인
+```bash
+GET /api/users/check-email?email=test@example.com
+```
+
+### 백테스팅 API
+- `POST /api/backtest/run` - 백테스팅 실행
+- `GET /api/backtest/run` - 간단한 백테스팅 실행
 - `GET /api/backtest/strategies` - 사용 가능한 전략 목록
 - `POST /api/backtest/validate` - 요청 유효성 검사
 - `GET /api/backtest/default-config` - 기본 설정 조회
@@ -130,7 +201,7 @@ export DB_PASSWORD="your_password"
 
 ## 📈 성과 지표
 
-백트래킹 결과에서 제공하는 주요 지표:
+백테스팅 결과에서 제공하는 주요 지표:
 - **총 수익률**: 전체 투자 기간의 수익률
 - **연간 수익률**: 연간화된 수익률
 - **최대 낙폭**: 최대 손실 구간
