@@ -1,0 +1,142 @@
+{
+  "collections": {
+    "stock_prices": {
+      "description": "주식 시세 데이터 (일별, 분별)",
+      "indexes": [
+        {"stockCode": 1, "date": 1},
+        {"stockCode": 1, "timestamp": 1},
+        {"date": 1},
+        {"timestamp": 1}
+      ],
+      "sample_document": {
+        "_id": "ObjectId",
+        "stockCode": "005930",
+        "stockName": "삼성전자",
+        "date": "2024-01-15",
+        "timestamp": "2024-01-15T09:00:00Z",
+        "open": 75000,
+        "high": 75500,
+        "low": 74800,
+        "close": 75200,
+        "volume": 15000000,
+        "amount": 1128000000000,
+        "changeAmount": 200,
+        "changeRate": 0.0027,
+        "marketCap": 450000000000000,
+        "createdAt": "2024-01-15T09:00:00Z",
+        "updatedAt": "2024-01-15T09:00:00Z"
+      }
+    },
+    "intraday_prices": {
+      "description": "분별 시세 데이터",
+      "indexes": [
+        {"stockCode": 1, "date": 1, "time": 1},
+        {"stockCode": 1, "timestamp": 1},
+        {"date": 1, "time": 1}
+      ],
+      "sample_document": {
+        "_id": "ObjectId",
+        "stockCode": "005930",
+        "date": "2024-01-15",
+        "time": "09:00",
+        "timestamp": "2024-01-15T09:00:00Z",
+        "price": 75000,
+        "volume": 100000,
+        "amount": 7500000000,
+        "createdAt": "2024-01-15T09:00:00Z"
+      }
+    },
+    "technical_indicators": {
+      "description": "기술적 지표 데이터",
+      "indexes": [
+        {"stockCode": 1, "date": 1, "indicator": 1},
+        {"stockCode": 1, "indicator": 1, "date": 1}
+      ],
+      "sample_document": {
+        "_id": "ObjectId",
+        "stockCode": "005930",
+        "date": "2024-01-15",
+        "indicator": "SMA",
+        "period": 20,
+        "value": 74500.5,
+        "parameters": {
+          "shortPeriod": 5,
+          "longPeriod": 20
+        },
+        "createdAt": "2024-01-15T09:00:00Z"
+      }
+    },
+    "market_summary": {
+      "description": "시장 요약 정보",
+      "indexes": [
+        {"date": 1},
+        {"marketType": 1, "date": 1}
+      ],
+      "sample_document": {
+        "_id": "ObjectId",
+        "date": "2024-01-15",
+        "marketType": "KOSPI",
+        "openIndex": 2500.5,
+        "closeIndex": 2510.2,
+        "highIndex": 2515.8,
+        "lowIndex": 2498.3,
+        "volume": 500000000,
+        "amount": 15000000000000,
+        "advancingStocks": 450,
+        "decliningStocks": 380,
+        "unchangedStocks": 20,
+        "createdAt": "2024-01-15T09:00:00Z"
+      }
+    },
+    "stock_news": {
+      "description": "주식 관련 뉴스",
+      "indexes": [
+        {"stockCode": 1, "publishedAt": 1},
+        {"publishedAt": 1},
+        {"category": 1, "publishedAt": 1}
+      ],
+      "sample_document": {
+        "_id": "ObjectId",
+        "stockCode": "005930",
+        "title": "삼성전자, 4분기 실적 예상치 상회",
+        "content": "삼성전자가 시장 예상치를 상회하는 실적을 발표했다...",
+        "summary": "삼성전자 4분기 실적 호조",
+        "category": "earnings",
+        "sentiment": "positive",
+        "source": "한국경제",
+        "url": "https://example.com/news/123",
+        "publishedAt": "2024-01-15T08:30:00Z",
+        "createdAt": "2024-01-15T08:30:00Z"
+      }
+    },
+    "api_logs": {
+      "description": "API 호출 로그",
+      "indexes": [
+        {"timestamp": 1},
+        {"apiType": 1, "timestamp": 1},
+        {"stockCode": 1, "timestamp": 1}
+      ],
+      "sample_document": {
+        "_id": "ObjectId",
+        "apiType": "stock_price",
+        "stockCode": "005930",
+        "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-price",
+        "requestTime": "2024-01-15T09:00:00Z",
+        "responseTime": "2024-01-15T09:00:01Z",
+        "duration": 1000,
+        "statusCode": 200,
+        "success": true,
+        "errorMessage": null,
+        "requestData": {
+          "FID_COND_MRKT_DIV_CODE": "J",
+          "FID_INPUT_ISCD": "005930"
+        },
+        "responseData": {
+          "rt_cd": "0",
+          "msg1": "정상처리 되었습니다."
+        },
+        "createdAt": "2024-01-15T09:00:01Z"
+      }
+    }
+  }
+} 
