@@ -1,6 +1,50 @@
 spring:
   profiles:
     active: dev
+  application:
+    name: trade-project
+  docker:
+    compose:
+      enabled: false
+
+# JPA 설정
+jpa:
+  hibernate:
+    ddl-auto: validate
+  show-sql: true
+  properties:
+    hibernate:
+      format_sql: true
+      dialect: org.hibernate.dialect.MySQLDialect
+
+# MySQL 데이터베이스 설정
+datasource:
+  driver-class-name: com.mysql.cj.jdbc.Driver
+  url: jdbc:mysql://localhost:3306/trade_project?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
+  username: ${DB_USERNAME:root}
+  password: ${DB_PASSWORD:password}
+
+# MongoDB 설정
+data:
+  mongodb:
+    host: ${MONGODB_HOST:localhost}
+    port: ${MONGODB_PORT:27017}
+    database: ${MONGODB_DATABASE:trade_project}
+    username: ${MONGODB_USERNAME:}
+    password: ${MONGODB_PASSWORD:}
+
+# Spring Security 설정
+security:
+  user:
+    name: admin
+    password: admin123
+  basic:
+    enabled: false
+
+naver:
+  api:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
 
 # 공통 설정
 server:
@@ -8,17 +52,33 @@ server:
   servlet:
     context-path: /
 
+# 로깅 설정
+logging:
+  level:
+    trade.project: DEBUG
+    trade.project.common.client: DEBUG
+    trade.project.api.client: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 애플리케이션 정보
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
 # 한국투자증권 OpenAPI 공통 설정
 kis:
   api:
     base-url: https://openapi.koreainvestment.com:9443
     app-key: ${KIS_APP_KEY}
     app-secret: ${KIS_APP_SECRET}
-
-# 로깅 설정
-logging:
-  level:
-    trade.project.common.client: DEBUG
-    trade.project.api.client: DEBUG
-    org.springframework.web.reactive.function.client: DEBUG
 

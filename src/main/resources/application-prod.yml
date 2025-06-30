@@ -1,17 +1,12 @@
 spring:
   application:
-    name: project
+    name: prod
 
   datasource:
-    driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:trade_prod}?useSSL=true&allowPublicKeyRetrieval=true&useUnicode=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:trade_prod}?useSSL=true&allowPublicKeyRetrieval=true&useUnicode=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
-mybatis:
-  mapper-locations: classpath:xml/*.xml
-  configuration:
-    map-underscore-to-camel-case: true
 
 # 한국투자증권 OpenAPI 설정 (운영용)
 kis:
