@@ -39,12 +39,16 @@ public class KisApiClient {
     private static final String STOCK_DAILY_PRICE_ENDPOINT = "/uapi/domestic-stock/v1/quotations/inquire-daily-price";
     private static final String STOCK_TRADE_HISTORY_ENDPOINT = "/uapi/domestic-stock/v1/trading/inquire-daily-ccld";
     private static final String ACCOUNT_BALANCE_ENDPOINT = "/uapi/domestic-stock/v1/trading/inquire-balance";
+    private static final String STOCK_ORDER_ENDPOINT = "/uapi/domestic-stock/v1/trading/order-cash";
+    private static final String ORDER_STATUS_ENDPOINT = "/uapi/domestic-stock/v1/trading/inquire-order";
 
     // TR ID 상수
     private static final String TR_ID_STOCK_PRICE = "FHKST01010100";
     private static final String TR_ID_STOCK_DAILY = "FHKST01010400";
     private static final String TR_ID_TRADE_HISTORY = "TTTC8001R";
     private static final String TR_ID_ACCOUNT_BALANCE = "TTTC8434R";
+    private static final String TR_ID_STOCK_ORDER = "TTTC0802U";
+    private static final String TR_ID_ORDER_STATUS = "TTTC8001R";
 
     /**
      * 한국투자증권 API 인증 토큰 발급 (캐싱 포함)
@@ -198,6 +202,47 @@ public class KisApiClient {
         } catch (Exception e) {
             log.error("계좌 잔고 조회 중 오류 발생: {}", e.getMessage());
             throw new ApiException("계좌 잔고 조회 실패", e);
+        }
+    }
+
+    /**
+     * 주식 주문 실행
+     */
+    public Map<String, Object> executeStockOrder(Map<String, String> orderParams) {
+        try {
+            String url = baseUrl + STOCK_ORDER_ENDPOINT;
+            
+            Map<String, String> headers = getAuthHeaders();
+            headers.put("tr_id", TR_ID_STOCK_ORDER);
+            
+            return baseRestClient.post(url, headers, orderParams, Map.class);
+        } catch (Exception e) {
+            log.error("주식 주문 실행 중 오류 발생: {}", e.getMessage());
+            throw new ApiException("주식 주문 실행 실패", e);
+        }
+    }
+
+    /**
+     * 주문 상태 조회
+     */
+    public Map<String, Object> getOrderStatus(String accountNumber, String orderNumber) {
+        try {
+            String url = baseUrl + ORDER_STATUS_ENDPOINT;
+            
+            Map<String, String> headers = getAuthHeaders();
+            headers.put("tr_id", TR_ID_ORDER_STATUS);
+            
+            Map<String, String> queryParams = new HashMap<>();
+            queryParams.put("FID_COND_MRKT_DIV_CODE", "J");
+            queryParams.put("FID_INPUT_ACNT_NO", accountNumber);
+            queryParams.put("FID_INPUT_ODNO", orderNumber);
+
+            String fullUrl = url + "?" + buildQueryString(queryParams);
+            
+            return baseRestClient.get(fullUrl, headers, Map.class);
+        } catch (Exception e) {
+            log.error("주문 상태 조회 중 오류 발생: {}", e.getMessage());
+            throw new ApiException("주문 상태 조회 실패", e);
         }
     }
 

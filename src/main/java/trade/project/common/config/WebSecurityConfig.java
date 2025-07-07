@@ -20,13 +20,14 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // 공개 API (인증 불필요)
                 .requestMatchers(
+                        "/api/**",
                     "/api/users/signup",
                     "/api/users/login",
                     "/api/users/check-username",
                     "/api/users/check-email",
                     "/api/test/**",
                     "/actuator/**",
-                    "/api/naver/news"
+                    "/api/news"
                 ).permitAll()
                 
                 // 나머지 모든 요청은 인증 필요

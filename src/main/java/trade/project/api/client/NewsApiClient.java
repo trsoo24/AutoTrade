@@ -7,37 +7,32 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
-public class NaverNewsApiClient {
+public class NewsApiClient {
 
-    @Value("${naver.api.client-id}")
-    private String clientId;
+    @Value("${newsapi.api.key}")
+    private String apiKey;
 
-    @Value("${naver.api.client-secret}")
-    private String clientSecret;
-
-    private static final String NEWS_API_URL = "https://openapi.naver.com/v1/search/news.json";
+    private static final String NEWS_API_URL = "https://newsapi.org/v2/everything";
 
     public String searchNews() {
         RestTemplate restTemplate = new RestTemplate();
 
+        Integer page = 1;
+        Integer pageSize = 10;
+
         String url = UriComponentsBuilder.fromHttpUrl(NEWS_API_URL)
-                .queryParam("query", "주식")
-                .queryParam("display", 10)
-                .queryParam("start", 1)
-                .queryParam("sort", "sim")
+                .queryParam("q", "주식")
+                .queryParam("language", "ko")
+                .queryParam("apiKey", apiKey)
+                .queryParam("page", page)
+                .queryParam("pageSize", pageSize)
                 .build()
                 .toUriString();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Naver-Client-Id", clientId);
-        headers.set("X-Naver-Client-Secret", clientSecret);
-
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         ResponseEntity<String> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
-                entity,
+                null,
                 String.class
         );
 

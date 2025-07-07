@@ -82,3 +82,7 @@ kis:
     app-key: ${KIS_APP_KEY}
     app-secret: ${KIS_APP_SECRET}
 
+newsapi:
+  api:
+    key: ${NEWSAPI_API_KEY}
+
