@@ -31,9 +31,15 @@ public class AutoTradingController {
     public ResponseEntity<ApiResponse<String>> initializeEngine() {
         try {
             log.info("자동매매 엔진 초기화 요청");
-            boolean started = autoTradingEngine.initialize();
-            if (started) {
-                return ResponseEntity.ok(ApiResponse.success("자동매매 엔진이 정상적으로 초기화되었습니다."));
+            boolean domesticStarted = autoTradingEngine.initializeDomestic();
+            boolean foreignStarted = autoTradingEngine.initializeForeign();
+            
+            if (domesticStarted && foreignStarted) {
+                return ResponseEntity.ok(ApiResponse.success("국내/해외 자동매매 엔진이 정상적으로 초기화되었습니다."));
+            } else if (domesticStarted) {
+                return ResponseEntity.ok(ApiResponse.success("국내 자동매매 엔진만 초기화되었습니다."));
+            } else if (foreignStarted) {
+                return ResponseEntity.ok(ApiResponse.success("해외 자동매매 엔진만 초기화되었습니다."));
             } else {
                 return ResponseEntity.ok(ApiResponse.success("자동매매 엔진이 이미 실행 중입니다."));
             }
@@ -51,9 +57,15 @@ public class AutoTradingController {
     public ResponseEntity<ApiResponse<String>> shutdownEngine() {
         try {
             log.info("자동매매 엔진 종료 요청");
-            boolean stopped = autoTradingEngine.shutdown();
-            if (stopped) {
-                return ResponseEntity.ok(ApiResponse.success("자동매매 엔진이 정상적으로 종료되었습니다."));
+            boolean domesticStopped = autoTradingEngine.shutdownDomestic();
+            boolean foreignStopped = autoTradingEngine.shutdownForeign();
+            
+            if (domesticStopped && foreignStopped) {
+                return ResponseEntity.ok(ApiResponse.success("국내/해외 자동매매 엔진이 정상적으로 종료되었습니다."));
+            } else if (domesticStopped) {
+                return ResponseEntity.ok(ApiResponse.success("국내 자동매매 엔진만 종료되었습니다."));
+            } else if (foreignStopped) {
+                return ResponseEntity.ok(ApiResponse.success("해외 자동매매 엔진만 종료되었습니다."));
             } else {
                 return ResponseEntity.ok(ApiResponse.success("자동매매 엔진이 이미 종료된 상태입니다."));
             }

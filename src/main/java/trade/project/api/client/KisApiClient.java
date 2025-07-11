@@ -51,6 +51,23 @@ public class KisApiClient {
     private static final String TR_ID_ORDER_STATUS = "TTTC8001R";
 
     /**
+     * 초기화 시 API 키 확인
+     */
+    public void validateApiKeys() {
+        log.info("KIS API 설정 확인:");
+        log.info("Base URL: {}", baseUrl);
+        log.info("App Key: {}", appKey != null ? appKey.substring(0, Math.min(8, appKey.length())) + "..." : "NULL");
+        log.info("App Secret: {}", appSecret != null ? appSecret.substring(0, Math.min(8, appSecret.length())) + "..." : "NULL");
+        
+        if (appKey == null || appKey.trim().isEmpty()) {
+            log.error("KIS_APP_KEY가 설정되지 않았습니다. 환경 변수를 확인해주세요.");
+        }
+        if (appSecret == null || appSecret.trim().isEmpty()) {
+            log.error("KIS_APP_SECRET가 설정되지 않았습니다. 환경 변수를 확인해주세요.");
+        }
+    }
+
+    /**
      * 한국투자증권 API 인증 토큰 발급 (캐싱 포함)
      */
     public String getAccessToken() {
@@ -77,6 +94,14 @@ public class KisApiClient {
      */
     private String refreshAccessToken() {
         try {
+            // API 키 검증
+            if (appKey == null || appKey.trim().isEmpty() || appSecret == null || appSecret.trim().isEmpty()) {
+                log.error("API 키가 설정되지 않았습니다. appKey: {}, appSecret: {}", 
+                         appKey != null ? "설정됨" : "NULL", 
+                         appSecret != null ? "설정됨" : "NULL");
+                throw new ApiException("API 키가 설정되지 않았습니다. 환경 변수 KIS_APP_KEY, KIS_APP_SECRET를 확인해주세요.");
+            }
+            
             String url = baseUrl + OAUTH_TOKEN_ENDPOINT;
             
             Map<String, String> headers = new HashMap<>();
@@ -84,9 +109,10 @@ public class KisApiClient {
             
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("grant_type", "client_credentials");
-            requestBody.put("appkey", appKey);
             requestBody.put("appsecret", appSecret);
+            requestBody.put("appkey", appKey);
 
+            log.info("토큰 발급 요청: {}", url);
             Map<String, Object> response = baseRestClient.post(url, headers, requestBody, Map.class);
             
             if (response.containsKey("access_token")) {

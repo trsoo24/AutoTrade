@@ -48,6 +48,8 @@ public class ForeignStockOrderRequest {
     @Pattern(regexp = "^(일반|신용|대출)$", message = "주문구분은 '일반', '신용', '대출' 중 하나여야 합니다")
     private String orderCategory;
     
+    @Builder.Default
     private String currency = "USD";
+    @Builder.Default
     private String exchange = "NASDAQ";
 } 

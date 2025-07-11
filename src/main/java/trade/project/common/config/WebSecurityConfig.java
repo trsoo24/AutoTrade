@@ -20,6 +20,8 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // 공개 API (인증 불필요)
                 .requestMatchers(
+                        "/uapi/**",
+                        "/oauth2/**",
                         "/api/**",
                     "/api/users/signup",
                     "/api/users/login",

@@ -42,10 +42,6 @@ public class AutoTradingEngine {
 
     private final StockPriceService stockPriceService;
     private final StockOrderService stockOrderService;
-    private final ForeignStockPriceService foreignStockPriceService;
-    private final ForeignStockOrderService foreignStockOrderService;
-    private final TradingRecordService tradingRecordService;
-    private final PriceQueryRecordService priceQueryRecordService;
 
     // 국내/해외 전략, 상태, 스케줄러 분리
     private final Map<String, AutoTradingStrategy> domesticStrategies = new ConcurrentHashMap<>();
@@ -244,78 +240,43 @@ public class AutoTradingEngine {
     }
     public boolean isForeignRunning() { return foreignRunning.get(); }
 
-    // ==================== 기존 방식(전체) 호환성 유지 ====================
+    // ==================== 공통 메서드 ====================
     /**
-     * 전략 등록
+     * 전략 등록 (국내/해외 자동 분류)
      */
     public void registerStrategy(AutoTradingStrategy strategy) {
-        strategies.put(strategy.getStrategyId(), strategy);
-        tradingStatuses.put(strategy.getStrategyId(), new TradingStatus());
-        log.info("전략 등록: {} - {}", strategy.getStrategyId(), strategy.getStrategyName());
+        if (strategy.getMarketType() == MarketType.FOREIGN) {
+            registerForeignStrategy(strategy);
+        } else {
+            registerDomesticStrategy(strategy);
+        }
     }
     
     /**
-     * 전략 제거
+     * 전략 제거 (국내/해외 자동 분류)
      */
     public void unregisterStrategy(String strategyId) {
-        strategies.remove(strategyId);
-        tradingStatuses.remove(strategyId);
-        log.info("전략 제거: {}", strategyId);
-    }
-    
-    /**
-     * 스케줄링 시작
-     */
-    private void startScheduling() {
-        if (scheduler == null || scheduler.isShutdown() || scheduler.isTerminated()) {
-            scheduler = Executors.newScheduledThreadPool(5);
-        }
-        // 1분마다 시세 조회 및 매매 신호 확인
-        scheduler.scheduleAtFixedRate(this::checkAllStrategies, 0, 1, TimeUnit.MINUTES);
-        
-        // 5분마다 리스크 관리 체크
-        scheduler.scheduleAtFixedRate(this::checkRiskManagement, 0, 5, TimeUnit.MINUTES);
-        
-        // 1시간마다 상태 리포트
-        scheduler.scheduleAtFixedRate(this::generateStatusReport, 0, 1, TimeUnit.HOURS);
-        
-        log.info("자동매매 스케줄링 시작");
-    }
-    
-    /**
-     * 모든 전략 체크
-     */
-    private void checkAllStrategies() {
-        TradingSchedule currentSchedule = TradingSchedule.getCurrentSchedule();
-        
-        if (!TradingSchedule.isMarketHours() && !currentSchedule.isHighFrequency()) {
-            log.debug("장 시간이 아니므로 스킵");
-            return;
-        }
-        
-        for (AutoTradingStrategy strategy : strategies.values()) {
-            if (!strategy.isEnabled()) {
-                continue;
-            }
-            
-            try {
-                checkStrategy(strategy);
-            } catch (Exception e) {
-                log.error("전략 체크 중 오류 발생: {} - {}", strategy.getStrategyId(), e.getMessage());
-            }
+        if (foreignStrategies.containsKey(strategyId)) {
+            foreignStrategies.remove(strategyId);
+            foreignStatuses.remove(strategyId);
+            log.info("해외 전략 제거: {}", strategyId);
+        } else if (domesticStrategies.containsKey(strategyId)) {
+            domesticStrategies.remove(strategyId);
+            domesticStatuses.remove(strategyId);
+            log.info("국내 전략 제거: {}", strategyId);
         }
     }
-    
+
     /**
-     * 개별 전략 체크
+     * 개별 전략 체크 (국내용)
      */
-    private void checkStrategy(AutoTradingStrategy strategy) {
+    private void checkStrategy(AutoTradingStrategy strategy, Map<String, TradingStatus> statuses) {
         String strategyId = strategy.getStrategyId();
-        TradingStatus status = tradingStatuses.get(strategyId);
+        TradingStatus status = statuses.get(strategyId);
         
         if (status == null) {
             status = new TradingStatus();
-            tradingStatuses.put(strategyId, status);
+            statuses.put(strategyId, status);
         }
         
         // 시세 조회
@@ -577,94 +538,10 @@ public class AutoTradingEngine {
     }
     
     /**
-     * 리스크 관리 체크
-     */
-    private void checkRiskManagement() {
-        for (AutoTradingStrategy strategy : strategies.values()) {
-            if (!strategy.isEnabled()) {
-                continue;
-            }
-            
-            TradingStatus status = tradingStatuses.get(strategy.getStrategyId());
-            if (status == null) {
-                continue;
-            }
-            
-            // 일일 손실 한도 체크
-            BigDecimal dailyLossRate = status.dailyPnL.divide(strategy.getTotalInvestment(), 4, BigDecimal.ROUND_HALF_UP)
-                    .multiply(new BigDecimal("100"));
-            
-            if (dailyLossRate.compareTo(strategy.getMaxDailyLoss().negate()) <= 0) {
-                log.warn("일일 손실 한도 초과: {} - {}%", strategy.getStrategyId(), dailyLossRate);
-                // 전략 비활성화 또는 긴급 매도
-                strategy.setEnabled(false);
-            }
-        }
-    }
-    
-    /**
-     * 상태 리포트 생성
-     */
-    private void generateStatusReport() {
-        log.info("=== 자동매매 상태 리포트 ===");
-        log.info("활성 전략 수: {}", strategies.values().stream().filter(AutoTradingStrategy::isEnabled).count());
-        
-        for (AutoTradingStrategy strategy : strategies.values()) {
-            if (!strategy.isEnabled()) {
-                continue;
-            }
-            
-            TradingStatus status = tradingStatuses.get(strategy.getStrategyId());
-            if (status == null) {
-                continue;
-            }
-            
-            log.info("전략: {} - 보유: {}주, 평균가: {}, 일일손익: {}, 거래횟수: {}", 
-                    strategy.getStrategyName(),
-                    status.currentPosition,
-                    status.averagePrice,
-                    status.dailyPnL,
-                    status.dailyTradeCount);
-        }
-        log.info("==========================");
-    }
-    
-    /**
      * 매매 신호 Enum
      */
     private enum TradingSignal {
         BUY, SELL, HOLD
-    }
-    
-    /**
-     * 엔진 종료
-     */
-    public synchronized boolean shutdown() {
-        if (!running.get()) {
-            log.warn("자동매매 엔진이 이미 종료된 상태입니다.");
-            return false;
-        }
-        log.info("자동매매 엔진 종료 중...");
-        if (scheduler != null && !scheduler.isShutdown()) {
-            scheduler.shutdown();
-            try {
-                if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
-                    scheduler.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                scheduler.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
-        strategies.clear();
-        tradingStatuses.clear();
-        running.set(false);
-        log.info("자동매매 엔진 종료 완료");
-        return true;
-    }
-    
-    public boolean isRunning() {
-        return running.get();
     }
     
     // ==================== 해외 주식 관련 메서드 ====================

@@ -27,6 +27,8 @@ public class ForeignStockPriceRequest {
     @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "종료일은 YYYY-MM-DD 형식이어야 합니다")
     private String endDate;
     
+    @Builder.Default
     private String currency = "USD";
+    @Builder.Default
     private String exchange = "NASDAQ";
 } 
