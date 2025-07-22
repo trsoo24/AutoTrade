@@ -78,7 +78,8 @@ management:
 # 한국투자증권 OpenAPI 공통 설정
 kis:
   api:
-    base-url: https://openapi.koreainvestment.com:9443
+#    base-url: https://openapi.koreainvestment.com:9443
+    base-url: https://openapivts.koreainvestment.com:29443 # 모의투자용 base-url로 변경
     app-key: ${KIS_APP_KEY}
     app-secret: ${KIS_APP_SECRET}
 
