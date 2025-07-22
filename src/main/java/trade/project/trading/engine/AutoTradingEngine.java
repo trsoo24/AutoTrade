@@ -12,6 +12,7 @@ import trade.project.api.service.StockOrderService;
 import trade.project.api.service.ForeignStockPriceService;
 import trade.project.api.service.ForeignStockOrderService;
 import trade.project.backtest.util.TechnicalIndicatorCalculator;
+import trade.project.trading.document.PriceQueryRecord;
 import trade.project.trading.dto.AutoTradingStrategy;
 import trade.project.trading.enums.TopKospiStocks;
 import trade.project.trading.enums.TopNasdaqStocks;
@@ -42,6 +43,7 @@ public class AutoTradingEngine {
 
     private final StockPriceService stockPriceService;
     private final StockOrderService stockOrderService;
+    private final PriceQueryRecordService priceQueryRecordService; // [1] 과거 가격 데이터 서비스 주입
 
     // 국내/해외 전략, 상태, 스케줄러 분리
     private final Map<String, AutoTradingStrategy> domesticStrategies = new ConcurrentHashMap<>();
@@ -73,7 +75,7 @@ public class AutoTradingEngine {
             return false;
         }
         log.info("국내 자동매매 엔진 초기화 시작");
-        domesticScheduler = Executors.newScheduledThreadPool(3);
+        domesticScheduler = Executors.newScheduledThreadPool(1);
         domesticStrategies.clear();
         domesticStatuses.clear();
         registerDomesticDefaultStrategies();
@@ -98,19 +100,32 @@ public class AutoTradingEngine {
     }
     private void startDomesticScheduling() {
         if (domesticScheduler == null || domesticScheduler.isShutdown() || domesticScheduler.isTerminated()) {
-            domesticScheduler = Executors.newScheduledThreadPool(3);
+            domesticScheduler = Executors.newScheduledThreadPool(1);
         }
-        domesticScheduler.scheduleAtFixedRate(this::checkAllDomesticStrategies, 0, 1, TimeUnit.MINUTES);
+        // 전략별로 분산 실행: 1분 내 전략 개수만큼 분할, 최소 1초 간격 보장
+        domesticScheduler.scheduleAtFixedRate(this::scheduleDomesticStrategiesSequentially, 0, 1, TimeUnit.MINUTES);
         domesticScheduler.scheduleAtFixedRate(this::checkDomesticRiskManagement, 0, 5, TimeUnit.MINUTES);
         domesticScheduler.scheduleAtFixedRate(this::generateDomesticStatusReport, 0, 1, TimeUnit.HOURS);
         log.info("국내 자동매매 스케줄러 시작");
     }
-    private void checkAllDomesticStrategies() {
+
+    // 전략별로 1분 내 분산 실행 (최대 초당 10건 제한)
+    private void scheduleDomesticStrategiesSequentially() {
+        int strategyCount = (int) domesticStrategies.values().stream().filter(AutoTradingStrategy::isEnabled).count();
+        if (strategyCount == 0) return;
+        int intervalSec = Math.max(6, 60 / strategyCount); // 최소 6초 간격(10개면 6초, 5개면 12초)
+        int idx = 0;
         for (AutoTradingStrategy strategy : domesticStrategies.values()) {
             if (!strategy.isEnabled()) continue;
-            try { checkStrategy(strategy, domesticStatuses); } catch (Exception e) {
-                log.error("국내 전략 체크 중 오류: {} - {}", strategy.getStrategyId(), e.getMessage());
-            }
+            int delay = idx * intervalSec;
+            domesticScheduler.schedule(() -> {
+                try {
+                    checkStrategy(strategy, domesticStatuses);
+                } catch (Exception e) {
+                    log.error("국내 전략 분산 체크 중 오류: {} - {}", strategy.getStrategyId(), e.getMessage());
+                }
+            }, delay, TimeUnit.SECONDS);
+            idx++;
         }
     }
     private void checkDomesticRiskManagement() {
@@ -186,10 +201,30 @@ public class AutoTradingEngine {
         if (foreignScheduler == null || foreignScheduler.isShutdown() || foreignScheduler.isTerminated()) {
             foreignScheduler = Executors.newScheduledThreadPool(3);
         }
-        foreignScheduler.scheduleAtFixedRate(this::checkAllForeignStrategies, 0, 1, TimeUnit.MINUTES);
+        // 해외 전략도 국내와 동일하게 분산 실행: 1분 내 전략 개수만큼 분할, 최소 6초 간격 보장
+        foreignScheduler.scheduleAtFixedRate(this::scheduleForeignStrategiesSequentially, 0, 1, TimeUnit.MINUTES);
         foreignScheduler.scheduleAtFixedRate(this::checkForeignRiskManagement, 0, 5, TimeUnit.MINUTES);
         foreignScheduler.scheduleAtFixedRate(this::generateForeignStatusReport, 0, 1, TimeUnit.HOURS);
         log.info("해외 자동매매 스케줄러 시작");
+    }
+    // 해외 전략 분산 실행 (최대 초당 10건 제한)
+    private void scheduleForeignStrategiesSequentially() {
+        int strategyCount = (int) foreignStrategies.values().stream().filter(AutoTradingStrategy::isEnabled).count();
+        if (strategyCount == 0) return;
+        int intervalSec = Math.max(6, 60 / strategyCount); // 최소 6초 간격(10개면 6초, 5개면 12초)
+        int idx = 0;
+        for (AutoTradingStrategy strategy : foreignStrategies.values()) {
+            if (!strategy.isEnabled()) continue;
+            int delay = idx * intervalSec;
+            foreignScheduler.schedule(() -> {
+                try {
+                    checkStrategy(strategy, foreignStatuses);
+                } catch (Exception e) {
+                    log.error("해외 전략 분산 체크 중 오류: {} - {}", strategy.getStrategyId(), e.getMessage());
+                }
+            }, delay, TimeUnit.SECONDS);
+            idx++;
+        }
     }
     private void checkAllForeignStrategies() {
         for (AutoTradingStrategy strategy : foreignStrategies.values()) {
@@ -318,30 +353,129 @@ public class AutoTradingEngine {
     }
     
     /**
-     * 기술적 지표 계산
+     * 기술적 지표 계산 (실전 트레이딩 표준)
      */
     private Map<String, BigDecimal> calculateTechnicalIndicators(AutoTradingStrategy strategy, StockPriceResponse priceResponse) {
-        // 실제 구현에서는 과거 데이터를 사용하여 지표를 계산해야 함
-        // 여기서는 간단한 예시로 구현
-        
-        Map<String, BigDecimal> indicators = new java.util.HashMap<>();
-        
-        // RSI (임시 값)
+        List<PriceQueryRecord> priceHistory = priceQueryRecordService.findByStockCodeAndQueryType(
+            strategy.getStockCode(), "daily");
+        if (priceHistory.size() < 30) {
+            return getFallbackIndicators(priceResponse);
+        }
+        List<PriceQueryRecord> recent = priceHistory.subList(0, Math.min(50, priceHistory.size()));
+        List<BigDecimal> closes = recent.stream().map(r -> new BigDecimal(r.getCurrentPrice())).toList();
+        List<BigDecimal> highs = recent.stream().map(r -> new BigDecimal(r.getHighPrice())).toList();
+        List<BigDecimal> lows = recent.stream().map(r -> new BigDecimal(r.getLowPrice())).toList();
+
+        Map<String, BigDecimal> indicators = new HashMap<>();
+        // RSI(14) - Wilders Smoothing
+        indicators.put("RSI", calculateRSI_Wilders(closes, 14));
+        // EMA(12,26)
+        List<BigDecimal> emaFastSeries = calculateEMA_Series(closes, 12);
+        List<BigDecimal> emaSlowSeries = calculateEMA_Series(closes, 26);
+        // MACD 시계열 및 Signal
+        List<BigDecimal> macdSeries = new java.util.ArrayList<>();
+        for (int i = 0; i < Math.min(emaFastSeries.size(), emaSlowSeries.size()); i++) {
+            macdSeries.add(emaFastSeries.get(i).subtract(emaSlowSeries.get(i)));
+        }
+        List<BigDecimal> signalSeries = calculateEMA_Series(macdSeries, 9);
+        // 최신값만 저장
+        indicators.put("MACD", macdSeries.isEmpty() ? BigDecimal.ZERO : macdSeries.get(0));
+        indicators.put("MACD_SIGNAL", signalSeries.isEmpty() ? BigDecimal.ZERO : signalSeries.get(0));
+        // SMA/EMA(5,20)
+        indicators.put("SMA_SHORT", calculateSMA(closes, 5));
+        indicators.put("SMA_LONG", calculateSMA(closes, 20));
+        indicators.put("EMA_SHORT", emaFastSeries.isEmpty() ? closes.get(0) : emaFastSeries.get(0));
+        indicators.put("EMA_LONG", emaSlowSeries.isEmpty() ? closes.get(0) : emaSlowSeries.get(0));
+        // 볼린저밴드(20,2) - bias correction, 중심선 EMA 옵션
+        BigDecimal[] bb = calculateBollingerBands(closes, 20, 2, true, true);
+        indicators.put("BB_UPPER", bb[0]);
+        indicators.put("BB_LOWER", bb[1]);
+        // 최근 고가/저가
+        indicators.put("HIGH_20", highs.subList(0, Math.min(20, highs.size())).stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO));
+        indicators.put("LOW_20", lows.subList(0, Math.min(20, lows.size())).stream().min(BigDecimal::compareTo).orElse(BigDecimal.ZERO));
+        return indicators;
+    }
+    // 임시값 반환 (데이터 부족 시)
+    private Map<String, BigDecimal> getFallbackIndicators(StockPriceResponse priceResponse) {
+        Map<String, BigDecimal> indicators = new HashMap<>();
         indicators.put("RSI", new BigDecimal("50"));
-        
-        // MACD (임시 값)
         indicators.put("MACD", new BigDecimal("0"));
         indicators.put("MACD_SIGNAL", new BigDecimal("0"));
-        
-        // 이동평균 (임시 값)
         indicators.put("SMA_SHORT", new BigDecimal(priceResponse.getCurrentPrice()));
         indicators.put("SMA_LONG", new BigDecimal(priceResponse.getCurrentPrice()));
-        
+        indicators.put("BB_UPPER", new BigDecimal(priceResponse.getHighPrice()));
+        indicators.put("BB_LOWER", new BigDecimal(priceResponse.getLowPrice()));
+        indicators.put("HIGH_20", new BigDecimal(priceResponse.getHighPrice()));
+        indicators.put("LOW_20", new BigDecimal(priceResponse.getLowPrice()));
         return indicators;
+    }
+    // RSI (Wilders Smoothing)
+    private BigDecimal calculateRSI_Wilders(List<BigDecimal> closes, int period) {
+        if (closes.size() < period + 1) return new BigDecimal("50");
+        List<BigDecimal> deltas = new java.util.ArrayList<>();
+        for (int i = closes.size() - 1; i > 0; i--) {
+            deltas.add(closes.get(i - 1).subtract(closes.get(i)));
+        }
+        BigDecimal gain = BigDecimal.ZERO, loss = BigDecimal.ZERO;
+        for (int i = 0; i < period; i++) {
+            BigDecimal d = deltas.get(i);
+            if (d.compareTo(BigDecimal.ZERO) > 0) gain = gain.add(d);
+            else loss = loss.add(d.abs());
+        }
+        gain = gain.divide(BigDecimal.valueOf(period), 6, BigDecimal.ROUND_HALF_UP);
+        loss = loss.divide(BigDecimal.valueOf(period), 6, BigDecimal.ROUND_HALF_UP);
+        for (int i = period; i < deltas.size(); i++) {
+            BigDecimal d = deltas.get(i);
+            if (d.compareTo(BigDecimal.ZERO) > 0) {
+                gain = (gain.multiply(BigDecimal.valueOf(period - 1)).add(d)).divide(BigDecimal.valueOf(period), 6, BigDecimal.ROUND_HALF_UP);
+                loss = (loss.multiply(BigDecimal.valueOf(period - 1))).divide(BigDecimal.valueOf(period), 6, BigDecimal.ROUND_HALF_UP);
+            } else {
+                gain = (gain.multiply(BigDecimal.valueOf(period - 1))).divide(BigDecimal.valueOf(period), 6, BigDecimal.ROUND_HALF_UP);
+                loss = (loss.multiply(BigDecimal.valueOf(period - 1)).add(d.abs())).divide(BigDecimal.valueOf(period), 6, BigDecimal.ROUND_HALF_UP);
+            }
+        }
+        if (gain.add(loss).compareTo(BigDecimal.ZERO) == 0) return new BigDecimal("50");
+        BigDecimal rs = gain.divide(loss.equals(BigDecimal.ZERO) ? BigDecimal.ONE : loss, 6, BigDecimal.ROUND_HALF_UP);
+        return new BigDecimal(100).subtract(new BigDecimal(100).divide(rs.add(BigDecimal.ONE), 2, BigDecimal.ROUND_HALF_UP));
+    }
+    // SMA
+    private BigDecimal calculateSMA(List<BigDecimal> closes, int period) {
+        if (closes.size() < period) return closes.get(0);
+        return closes.subList(0, period).stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(period), 2, BigDecimal.ROUND_HALF_UP);
+    }
+    // EMA 시계열 (초기값 SMA, 이후 k-factor)
+    private List<BigDecimal> calculateEMA_Series(List<BigDecimal> closes, int period) {
+        List<BigDecimal> emaSeries = new java.util.ArrayList<>();
+        if (closes.size() < period) {
+            emaSeries.add(closes.get(0));
+            return emaSeries;
+        }
+        BigDecimal k = new BigDecimal(2.0 / (period + 1));
+        // 초기값: SMA
+        BigDecimal prevEma = calculateSMA(closes, period);
+        emaSeries.add(prevEma);
+        for (int i = period; i < closes.size(); i++) {
+            BigDecimal price = closes.get(i);
+            prevEma = price.subtract(prevEma).multiply(k).add(prevEma);
+            emaSeries.add(0, prevEma.setScale(2, BigDecimal.ROUND_HALF_UP)); // 최신값이 앞에 오도록
+        }
+        return emaSeries;
+    }
+    // 볼린저밴드 (bias correction, 중심선 EMA 옵션, 신뢰구간 파라미터화)
+    private BigDecimal[] calculateBollingerBands(List<BigDecimal> closes, int period, int sigma, boolean biasCorrection, boolean useEMA) {
+        if (closes.size() < period) return new BigDecimal[]{closes.get(0), closes.get(0)};
+        List<BigDecimal> window = closes.subList(0, period);
+        BigDecimal center = useEMA ? calculateEMA_Series(window, period).get(0) : calculateSMA(window, period);
+        // 분산(bias correction)
+        BigDecimal variance = window.stream().map(c -> c.subtract(center).pow(2)).reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(biasCorrection ? period - 1 : period), 6, BigDecimal.ROUND_HALF_UP);
+        BigDecimal std = new BigDecimal(Math.sqrt(variance.doubleValue())).setScale(2, BigDecimal.ROUND_HALF_UP);
+        return new BigDecimal[]{center.add(std.multiply(BigDecimal.valueOf(sigma))), center.subtract(std.multiply(BigDecimal.valueOf(sigma)))};
     }
     
     /**
-     * 매매 신호 분석
+     * 매매 신호 분석 (고급화)
      */
     private TradingSignal analyzeTradingSignal(AutoTradingStrategy strategy, StockPriceResponse priceResponse, 
                                              Map<String, BigDecimal> indicators, TradingStatus status) {
@@ -351,17 +485,44 @@ public class AutoTradingEngine {
         BigDecimal macdSignal = indicators.get("MACD_SIGNAL");
         BigDecimal smaShort = indicators.get("SMA_SHORT");
         BigDecimal smaLong = indicators.get("SMA_LONG");
-        
-        // 매수 신호 확인
-        if (shouldBuy(strategy, currentPrice, rsi, macd, macdSignal, smaShort, smaLong, status)) {
-            return TradingSignal.BUY;
+        BigDecimal bbUpper = indicators.get("BB_UPPER");
+        BigDecimal bbLower = indicators.get("BB_LOWER");
+        BigDecimal high20 = indicators.get("HIGH_20");
+        BigDecimal low20 = indicators.get("LOW_20");
+
+        // 다중 지표 조합: RSI, MACD, 이동평균, 볼린저밴드, 고가/저가 돌파
+        boolean buySignal = rsi.compareTo(strategy.getRsiOversold()) <= 0
+                && macd.compareTo(macdSignal) > 0
+                && smaShort.compareTo(smaLong) > 0
+                && currentPrice.compareTo(bbLower) <= 0
+                && currentPrice.compareTo(low20) <= 0;
+        // 매도 신호: 보유 수량이 0 이하이면 무조건 HOLD
+        if (status.currentPosition == null || status.currentPosition.compareTo(BigDecimal.ZERO) <= 0) {
+            if (buySignal) return TradingSignal.BUY;
+            return TradingSignal.HOLD;
         }
-        
-        // 매도 신호 확인
-        if (shouldSell(strategy, currentPrice, rsi, macd, macdSignal, smaShort, smaLong, status)) {
-            return TradingSignal.SELL;
+        boolean sellSignal = rsi.compareTo(strategy.getRsiOverbought()) >= 0
+                && macd.compareTo(macdSignal) < 0
+                && smaShort.compareTo(smaLong) < 0
+                && currentPrice.compareTo(bbUpper) >= 0
+                && currentPrice.compareTo(high20) >= 0;
+
+        // 리스크 관리: 익절/손절/트레일링스탑
+        BigDecimal profitRate = currentPrice.subtract(status.averagePrice)
+                .divide(status.averagePrice.equals(BigDecimal.ZERO) ? BigDecimal.ONE : status.averagePrice, 4, BigDecimal.ROUND_HALF_UP)
+                .multiply(new BigDecimal("100"));
+        boolean profitTargetReached = profitRate.compareTo(strategy.getProfitTarget()) >= 0;
+        boolean stopLossTriggered = profitRate.compareTo(strategy.getStopLoss().negate()) <= 0;
+        // 트레일링 스탑(최근 고점 대비 일정 % 하락 시 매도)
+        boolean trailingStop = false;
+        if (status.lastPrice != null && status.lastPrice.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal drop = status.lastPrice.subtract(currentPrice)
+                    .divide(status.lastPrice, 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal("100"));
+            trailingStop = drop.compareTo(new BigDecimal("3")) >= 0; // 3% 이상 하락 시
         }
-        
+        if (buySignal) return TradingSignal.BUY;
+        if (sellSignal || profitTargetReached || stopLossTriggered || trailingStop) return TradingSignal.SELL;
         return TradingSignal.HOLD;
     }
     

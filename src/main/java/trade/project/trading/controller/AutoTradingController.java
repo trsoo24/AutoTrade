@@ -25,55 +25,99 @@ public class AutoTradingController {
     private final AutoTradingEngine autoTradingEngine;
 
     /**
-     * 자동매매 엔진 초기화
+     * 국내 자동매매 엔진 초기화
      */
-    @PostMapping("/initialize")
-    public ResponseEntity<ApiResponse<String>> initializeEngine() {
+    @PostMapping("/initialize/domestic")
+    public ResponseEntity<ApiResponse<String>> initializeDomesticEngine() {
         try {
-            log.info("자동매매 엔진 초기화 요청");
-            boolean domesticStarted = autoTradingEngine.initializeDomestic();
-            boolean foreignStarted = autoTradingEngine.initializeForeign();
-            
-            if (domesticStarted && foreignStarted) {
-                return ResponseEntity.ok(ApiResponse.success("국내/해외 자동매매 엔진이 정상적으로 초기화되었습니다."));
-            } else if (domesticStarted) {
-                return ResponseEntity.ok(ApiResponse.success("국내 자동매매 엔진만 초기화되었습니다."));
-            } else if (foreignStarted) {
-                return ResponseEntity.ok(ApiResponse.success("해외 자동매매 엔진만 초기화되었습니다."));
+            log.info("국내 자동매매 엔진 초기화 요청");
+            boolean started = autoTradingEngine.initializeDomestic();
+            if (started) {
+                return ResponseEntity.ok(ApiResponse.success("국내 자동매매 엔진이 정상적으로 초기화되었습니다."));
             } else {
-                return ResponseEntity.ok(ApiResponse.success("자동매매 엔진이 이미 실행 중입니다."));
+                return ResponseEntity.ok(ApiResponse.success("국내 자동매매 엔진이 이미 실행 중입니다."));
             }
         } catch (Exception e) {
-            log.error("자동매매 엔진 초기화 중 오류 발생: {}", e.getMessage());
+            log.error("국내 자동매매 엔진 초기화 중 오류 발생: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("ENGINE_INIT_ERROR", "자동매매 엔진 초기화 실패: " + e.getMessage()));
+                    .body(ApiResponse.error("ENGINE_INIT_ERROR", "국내 자동매매 엔진 초기화 실패: " + e.getMessage()));
         }
     }
 
     /**
-     * 자동매매 엔진 종료
+     * 해외 자동매매 엔진 초기화
+     */
+    @PostMapping("/initialize/foreign")
+    public ResponseEntity<ApiResponse<String>> initializeForeignEngine() {
+        try {
+            log.info("해외 자동매매 엔진 초기화 요청");
+            boolean started = autoTradingEngine.initializeForeign();
+            if (started) {
+                return ResponseEntity.ok(ApiResponse.success("해외 자동매매 엔진이 정상적으로 초기화되었습니다."));
+            } else {
+                return ResponseEntity.ok(ApiResponse.success("해외 자동매매 엔진이 이미 실행 중입니다."));
+            }
+        } catch (Exception e) {
+            log.error("해외 자동매매 엔진 초기화 중 오류 발생: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("ENGINE_INIT_ERROR", "해외 자동매매 엔진 초기화 실패: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 국내 자동매매 엔진 종료
+     */
+    @PostMapping("/shutdown/domestic")
+    public ResponseEntity<ApiResponse<String>> shutdownDomesticEngine() {
+        try {
+            log.info("국내 자동매매 엔진 종료 요청");
+            boolean stopped = autoTradingEngine.shutdownDomestic();
+            if (stopped) {
+                return ResponseEntity.ok(ApiResponse.success("국내 자동매매 엔진이 정상적으로 종료되었습니다."));
+            } else {
+                return ResponseEntity.ok(ApiResponse.success("국내 자동매매 엔진이 이미 종료된 상태입니다."));
+            }
+        } catch (Exception e) {
+            log.error("국내 자동매매 엔진 종료 중 오류 발생: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("ENGINE_SHUTDOWN_ERROR", "국내 자동매매 엔진 종료 실패: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 해외 자동매매 엔진 종료
+     */
+    @PostMapping("/shutdown/foreign")
+    public ResponseEntity<ApiResponse<String>> shutdownForeignEngine() {
+        try {
+            log.info("해외 자동매매 엔진 종료 요청");
+            boolean stopped = autoTradingEngine.shutdownForeign();
+            if (stopped) {
+                return ResponseEntity.ok(ApiResponse.success("해외 자동매매 엔진이 정상적으로 종료되었습니다."));
+            } else {
+                return ResponseEntity.ok(ApiResponse.success("해외 자동매매 엔진이 이미 종료된 상태입니다."));
+            }
+        } catch (Exception e) {
+            log.error("해외 자동매매 엔진 종료 중 오류 발생: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("ENGINE_SHUTDOWN_ERROR", "해외 자동매매 엔진 종료 실패: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * (Deprecated) 자동매매 엔진 초기화 - 국내/해외 동시 실행 (사용 자제)
+     */
+    @PostMapping("/initialize")
+    public ResponseEntity<ApiResponse<String>> initializeEngine() {
+        return ResponseEntity.badRequest().body(ApiResponse.error("DEPRECATED", "이 API는 더 이상 사용하지 마세요. /initialize/domestic 또는 /initialize/foreign를 사용하세요."));
+    }
+
+    /**
+     * (Deprecated) 자동매매 엔진 종료 - 국내/해외 동시 종료 (사용 자제)
      */
     @PostMapping("/shutdown")
     public ResponseEntity<ApiResponse<String>> shutdownEngine() {
-        try {
-            log.info("자동매매 엔진 종료 요청");
-            boolean domesticStopped = autoTradingEngine.shutdownDomestic();
-            boolean foreignStopped = autoTradingEngine.shutdownForeign();
-            
-            if (domesticStopped && foreignStopped) {
-                return ResponseEntity.ok(ApiResponse.success("국내/해외 자동매매 엔진이 정상적으로 종료되었습니다."));
-            } else if (domesticStopped) {
-                return ResponseEntity.ok(ApiResponse.success("국내 자동매매 엔진만 종료되었습니다."));
-            } else if (foreignStopped) {
-                return ResponseEntity.ok(ApiResponse.success("해외 자동매매 엔진만 종료되었습니다."));
-            } else {
-                return ResponseEntity.ok(ApiResponse.success("자동매매 엔진이 이미 종료된 상태입니다."));
-            }
-        } catch (Exception e) {
-            log.error("자동매매 엔진 종료 중 오류 발생: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("ENGINE_SHUTDOWN_ERROR", "자동매매 엔진 종료 실패: " + e.getMessage()));
-        }
+        return ResponseEntity.badRequest().body(ApiResponse.error("DEPRECATED", "이 API는 더 이상 사용하지 마세요. /shutdown/domestic 또는 /shutdown/foreign를 사용하세요."));
     }
 
     /**
