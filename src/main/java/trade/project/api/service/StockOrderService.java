@@ -28,6 +28,24 @@ public class StockOrderService {
     public StockOrderResponse executeOrder(StockOrderRequest request) {
         try {
             log.info("주식 주문 실행: {}", request);
+            // 주문 수량이 0 이하일 경우 주문하지 않음
+            if (request.getQuantity() == null || request.getQuantity() <= 0) {
+                log.warn("주문 수량이 0 이하이므로 주문을 실행하지 않습니다: {}", request);
+                return StockOrderResponse.builder()
+                        .accountNumber(request.getAccountNumber())
+                        .stockCode(request.getStockCode())
+                        .orderType(request.getOrderType())
+                        .quantity(request.getQuantity())
+                        .price(request.getPrice())
+                        .priceType(request.getPriceType())
+                        .orderCategory(request.getOrderCategory())
+                        .orderDateTime(java.time.LocalDateTime.now())
+                        .orderTime(java.time.LocalDateTime.now().toString())
+                        .orderStatus("수량 0 - 미실행")
+                        .errorCode("QTY_ZERO")
+                        .errorMessage("주문 수량이 0 이하이므로 주문이 실행되지 않았습니다.")
+                        .build();
+            }
             
             // 주문 파라미터 변환
             Map<String, String> orderParams = convertToOrderParams(request);
@@ -173,8 +191,8 @@ public class StockOrderService {
                 builder.stockCode((String) output.get("PDNO"))
                        .stockName((String) output.get("PRDT_NAME"))
                        .orderType(convertOrderType((String) output.get("ORD_DVSN")))
-                       .quantity(Integer.valueOf((String) output.get("ORD_QTY")))
-                       .price(Integer.valueOf((String) output.get("ORD_UNPR")))
+                       .quantity(parseInteger(output.get("ORD_QTY")))
+                       .price(parseInteger(output.get("ORD_UNPR")))
                        .orderStatus((String) output.get("ORD_STAT_NM"));
             }
         }
@@ -200,5 +218,19 @@ public class StockOrderService {
             return "매도";
         }
         return orderDvsn;
+    }
+
+    private Integer parseInteger(Object value) {
+        if (value == null) return null;
+        try {
+            if (value instanceof String) {
+                return Integer.parseInt((String) value);
+            } else if (value instanceof Number) {
+                return ((Number) value).intValue();
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Integer 파싱 실패: {}", value);
+        }
+        return null;
     }
 } 

@@ -8,6 +8,7 @@ import trade.project.common.dto.ApiResponse;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * 해외 주식 API 클라이언트
@@ -21,11 +22,15 @@ public class ForeignStockApiClient {
     // 해외 주식 API 기본 URL (실제 API로 교체 필요)
     private static final String FOREIGN_STOCK_BASE_URL = "https://api.foreign-stock.com";
     
+    // 해외시장용 초당 5건 제한 (필요시 조정)
+    private static final RateLimiter rateLimiter = RateLimiter.create(5.0);
+    
     /**
      * 해외 주식 현재가 조회
      */
     public ApiResponse<Map<String, Object>> getCurrentPrice(String stockCode) {
         try {
+            rateLimiter.acquire(); // 호출 제한 적용
             log.info("해외 주식 현재가 조회 요청: {}", stockCode);
             
             String url = FOREIGN_STOCK_BASE_URL + "/v1/stock/price/" + stockCode;
@@ -47,6 +52,7 @@ public class ForeignStockApiClient {
      */
     public ApiResponse<Map<String, Object>> getDailyPrice(String stockCode, String startDate, String endDate) {
         try {
+            rateLimiter.acquire(); // 호출 제한 적용
             log.info("해외 주식 일자별 시세 조회 요청: {}, 기간: {} ~ {}", stockCode, startDate, endDate);
             
             String url = FOREIGN_STOCK_BASE_URL + "/v1/stock/daily/" + stockCode;

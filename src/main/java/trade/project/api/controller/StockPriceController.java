@@ -42,25 +42,6 @@ public class StockPriceController {
     }
 
     /**
-     * 주식 일자별 시세 조회
-     */
-    @PostMapping("/daily")
-    public ResponseEntity<ApiResponse<StockDailyPriceResponse>> getDailyPrices(
-            @Valid @RequestBody StockDailyPriceRequest request, HttpServletRequest httpRequest) {
-        try {
-            log.info("주식 일자별 시세 조회 요청: {}", request);
-            
-            StockDailyPriceResponse response = stockPriceService.getDailyPrices(request, httpRequest);
-            
-            return ResponseEntity.ok(ApiResponse.success(response));
-        } catch (Exception e) {
-            log.error("주식 일자별 시세 조회 중 오류 발생: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("DAILY_PRICE_QUERY_ERROR", "주식 일자별 시세 조회 실패: " + e.getMessage()));
-        }
-    }
-
-    /**
      * 주식 현재가 조회 (GET 방식)
      */
     @GetMapping("/current/{stockCode}")
@@ -146,30 +127,6 @@ public class StockPriceController {
             log.error("NAVER 현재가 조회 테스트 중 오류 발생: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("TEST_PRICE_ERROR", "NAVER 현재가 조회 실패: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 삼성전자 일자별 시세 조회 테스트
-     */
-    @GetMapping("/test/samsung/daily")
-    public ResponseEntity<ApiResponse<StockDailyPriceResponse>> testSamsungDailyPrice(HttpServletRequest httpRequest) {
-        try {
-            log.info("삼성전자 일자별 시세 조회 테스트");
-            
-            StockDailyPriceRequest request = StockDailyPriceRequest.builder()
-                    .stockCode("005930")
-                    .startDate("20231201")
-                    .endDate("20231207")
-                    .build();
-            
-            StockDailyPriceResponse response = stockPriceService.getDailyPrices(request, httpRequest);
-            
-            return ResponseEntity.ok(ApiResponse.success(response));
-        } catch (Exception e) {
-            log.error("삼성전자 일자별 시세 조회 테스트 중 오류 발생: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("TEST_DAILY_PRICE_ERROR", "삼성전자 일자별 시세 조회 실패: " + e.getMessage()));
         }
     }
 } 
