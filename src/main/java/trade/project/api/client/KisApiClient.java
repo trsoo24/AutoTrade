@@ -11,6 +11,7 @@ import trade.project.common.exception.ApiException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import com.google.common.util.concurrent.RateLimiter;
 
 @Slf4j
 @Component
@@ -32,6 +33,9 @@ public class KisApiClient {
     private String cachedAccessToken;
     private LocalDateTime tokenExpiryTime;
     private static final int TOKEN_EXPIRY_MINUTES = 23; // 24시간보다 조금 짧게 설정
+
+    // 초당 5건 제한 (한국투자증권 OpenAPI 기준, 필요시 조정)
+    private static final RateLimiter rateLimiter = RateLimiter.create(5.0);
 
     // API 엔드포인트 상수
     private static final String OAUTH_TOKEN_ENDPOINT = "/oauth2/tokenP";
@@ -135,6 +139,7 @@ public class KisApiClient {
      */
     public Map<String, Object> getStockPrice(String stockCode) {
         try {
+            rateLimiter.acquire(); // 호출 제한 적용
             String url = baseUrl + STOCK_PRICE_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
@@ -158,6 +163,7 @@ public class KisApiClient {
      */
     public Map<String, Object> getStockDailyPrice(String stockCode, String startDate, String endDate) {
         try {
+            rateLimiter.acquire(); // 호출 제한 적용
             String url = baseUrl + STOCK_DAILY_PRICE_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
