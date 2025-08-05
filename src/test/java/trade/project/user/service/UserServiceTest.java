@@ -42,9 +42,6 @@ class UserServiceTest {
                 .confirmPassword("TestPass123!")
                 .realName("테스트 사용자")
                 .phone("010-1234-5678")
-                .birthDate(LocalDate.of(1990, 1, 1))
-                .gender("M")
-                .address("서울시 강남구")
                 .build();
 
         loginRequest = LoginRequest.builder()

@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -20,13 +21,11 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // 공개 API (인증 불필요)
                 .requestMatchers(
-                    "/api/users/signup",
-                    "/api/users/login",
-                    "/api/users/check-username",
-                    "/api/users/check-email",
-                    "/api/test/**",
+                        "/uapi/**",
+                        "/oauth2/**",
+                        "/api/**",
                     "/actuator/**",
-                    "/api/naver/news"
+                        "/error/**"
                 ).permitAll()
                 
                 // 나머지 모든 요청은 인증 필요
@@ -39,5 +38,11 @@ public class WebSecurityConfig {
             .logout(AbstractHttpConfigurer::disable);
 
         return http.build();
+    }
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .requestMatchers("/api/**", "/uapi/**", "/oauth2/**", "/actuator/**", "/error/**");
     }
 } 

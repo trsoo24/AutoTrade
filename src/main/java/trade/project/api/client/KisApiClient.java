@@ -11,6 +11,7 @@ import trade.project.common.exception.ApiException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import com.google.common.util.concurrent.RateLimiter;
 
 @Slf4j
 @Component
@@ -33,18 +34,42 @@ public class KisApiClient {
     private LocalDateTime tokenExpiryTime;
     private static final int TOKEN_EXPIRY_MINUTES = 23; // 24시간보다 조금 짧게 설정
 
+    // 초당 5건 제한 (한국투자증권 OpenAPI 기준, 필요시 조정)
+    private static final RateLimiter rateLimiter = RateLimiter.create(5.0);
+
     // API 엔드포인트 상수
     private static final String OAUTH_TOKEN_ENDPOINT = "/oauth2/tokenP";
     private static final String STOCK_PRICE_ENDPOINT = "/uapi/domestic-stock/v1/quotations/inquire-price";
     private static final String STOCK_DAILY_PRICE_ENDPOINT = "/uapi/domestic-stock/v1/quotations/inquire-daily-price";
     private static final String STOCK_TRADE_HISTORY_ENDPOINT = "/uapi/domestic-stock/v1/trading/inquire-daily-ccld";
     private static final String ACCOUNT_BALANCE_ENDPOINT = "/uapi/domestic-stock/v1/trading/inquire-balance";
+    private static final String STOCK_ORDER_ENDPOINT = "/uapi/domestic-stock/v1/trading/order-cash";
+    private static final String ORDER_STATUS_ENDPOINT = "/uapi/domestic-stock/v1/trading/inquire-order";
 
     // TR ID 상수
     private static final String TR_ID_STOCK_PRICE = "FHKST01010100";
     private static final String TR_ID_STOCK_DAILY = "FHKST01010400";
     private static final String TR_ID_TRADE_HISTORY = "TTTC8001R";
     private static final String TR_ID_ACCOUNT_BALANCE = "TTTC8434R";
+    private static final String TR_ID_STOCK_ORDER = "TTTC0802U";
+    private static final String TR_ID_ORDER_STATUS = "TTTC8001R";
+
+    /**
+     * 초기화 시 API 키 확인
+     */
+    public void validateApiKeys() {
+        log.info("KIS API 설정 확인:");
+        log.info("Base URL: {}", baseUrl);
+        log.info("App Key: {}", appKey != null ? appKey.substring(0, Math.min(8, appKey.length())) + "..." : "NULL");
+        log.info("App Secret: {}", appSecret != null ? appSecret.substring(0, Math.min(8, appSecret.length())) + "..." : "NULL");
+        
+        if (appKey == null || appKey.trim().isEmpty()) {
+            log.error("KIS_APP_KEY가 설정되지 않았습니다. 환경 변수를 확인해주세요.");
+        }
+        if (appSecret == null || appSecret.trim().isEmpty()) {
+            log.error("KIS_APP_SECRET가 설정되지 않았습니다. 환경 변수를 확인해주세요.");
+        }
+    }
 
     /**
      * 한국투자증권 API 인증 토큰 발급 (캐싱 포함)
@@ -73,6 +98,14 @@ public class KisApiClient {
      */
     private String refreshAccessToken() {
         try {
+            // API 키 검증
+            if (appKey == null || appKey.trim().isEmpty() || appSecret == null || appSecret.trim().isEmpty()) {
+                log.error("API 키가 설정되지 않았습니다. appKey: {}, appSecret: {}", 
+                         appKey != null ? "설정됨" : "NULL", 
+                         appSecret != null ? "설정됨" : "NULL");
+                throw new ApiException("API 키가 설정되지 않았습니다. 환경 변수 KIS_APP_KEY, KIS_APP_SECRET를 확인해주세요.");
+            }
+            
             String url = baseUrl + OAUTH_TOKEN_ENDPOINT;
             
             Map<String, String> headers = new HashMap<>();
@@ -80,9 +113,10 @@ public class KisApiClient {
             
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("grant_type", "client_credentials");
-            requestBody.put("appkey", appKey);
             requestBody.put("appsecret", appSecret);
+            requestBody.put("appkey", appKey);
 
+            log.info("토큰 발급 요청: {}", url);
             Map<String, Object> response = baseRestClient.post(url, headers, requestBody, Map.class);
             
             if (response.containsKey("access_token")) {
@@ -105,6 +139,7 @@ public class KisApiClient {
      */
     public Map<String, Object> getStockPrice(String stockCode) {
         try {
+            rateLimiter.acquire(); // 호출 제한 적용
             String url = baseUrl + STOCK_PRICE_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
@@ -128,6 +163,7 @@ public class KisApiClient {
      */
     public Map<String, Object> getStockDailyPrice(String stockCode, String startDate, String endDate) {
         try {
+            rateLimiter.acquire(); // 호출 제한 적용
             String url = baseUrl + STOCK_DAILY_PRICE_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
@@ -198,6 +234,47 @@ public class KisApiClient {
         } catch (Exception e) {
             log.error("계좌 잔고 조회 중 오류 발생: {}", e.getMessage());
             throw new ApiException("계좌 잔고 조회 실패", e);
+        }
+    }
+
+    /**
+     * 주식 주문 실행
+     */
+    public Map<String, Object> executeStockOrder(Map<String, String> orderParams) {
+        try {
+            String url = baseUrl + STOCK_ORDER_ENDPOINT;
+            
+            Map<String, String> headers = getAuthHeaders();
+            headers.put("tr_id", TR_ID_STOCK_ORDER);
+            
+            return baseRestClient.post(url, headers, orderParams, Map.class);
+        } catch (Exception e) {
+            log.error("주식 주문 실행 중 오류 발생: {}", e.getMessage());
+            throw new ApiException("주식 주문 실행 실패", e);
+        }
+    }
+
+    /**
+     * 주문 상태 조회
+     */
+    public Map<String, Object> getOrderStatus(String accountNumber, String orderNumber) {
+        try {
+            String url = baseUrl + ORDER_STATUS_ENDPOINT;
+            
+            Map<String, String> headers = getAuthHeaders();
+            headers.put("tr_id", TR_ID_ORDER_STATUS);
+            
+            Map<String, String> queryParams = new HashMap<>();
+            queryParams.put("FID_COND_MRKT_DIV_CODE", "J");
+            queryParams.put("FID_INPUT_ACNT_NO", accountNumber);
+            queryParams.put("FID_INPUT_ODNO", orderNumber);
+
+            String fullUrl = url + "?" + buildQueryString(queryParams);
+            
+            return baseRestClient.get(fullUrl, headers, Map.class);
+        } catch (Exception e) {
+            log.error("주문 상태 조회 중 오류 발생: {}", e.getMessage());
+            throw new ApiException("주문 상태 조회 실패", e);
         }
     }
 

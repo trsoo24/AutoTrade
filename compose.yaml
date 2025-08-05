@@ -8,13 +8,13 @@ services:
     ports:
       - '9200'
       - '9300'
-  mariadb:
-    image: 'mariadb:latest'
+  mysql:
+    image: 'mysql:8.0'
     environment:
-      - 'MARIADB_DATABASE=mydatabase'
-      - 'MARIADB_PASSWORD=secret'
-      - 'MARIADB_ROOT_PASSWORD=verysecret'
-      - 'MARIADB_USER=myuser'
+      - 'MYSQL_DATABASE=trade_dev'
+      - 'MYSQL_PASSWORD=secret'
+      - 'MYSQL_ROOT_PASSWORD=verysecret'
+      - 'MYSQL_USER=myuser'
     ports:
       - '13306'
   mongodb:

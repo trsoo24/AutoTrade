@@ -1,0 +1,1173 @@
+{
+	"info": {
+		"_postman_id": "trading-project-api-collection",
+		"name": "Trading Project API Collection",
+		"description": "한국투자증권 OpenAPI 기반 주식 거래 시스템 API Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "API 테스트",
+			"item": [
+				{
+					"name": "토큰 발급 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/token",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "token"]
+						}
+					}
+				},
+				{
+					"name": "주식 현재가 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/stock/price/005930",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "stock", "price", "005930"]
+						}
+					}
+				},
+				{
+					"name": "주식 일자별 시세 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/stock/daily/005930?startDate=20231201&endDate=20231207",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "stock", "daily", "005930"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "20231201"
+								},
+								{
+									"key": "endDate",
+									"value": "20231207"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "계좌 잔고 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/account/balance/1234567890",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "account", "balance", "1234567890"]
+						}
+					}
+				},
+				{
+					"name": "API 상태 확인",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "health"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "주식 주문",
+			"item": [
+				{
+					"name": "주식 주문 실행",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountNumber\": \"1234567890\",\n  \"stockCode\": \"005930\",\n  \"orderType\": \"매수\",\n  \"quantity\": 10,\n  \"price\": 70000,\n  \"priceType\": \"지정가\",\n  \"orderCategory\": \"일반\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/order/execute",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "order", "execute"]
+						}
+					}
+				},
+				{
+					"name": "주문 상태 조회",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountNumber\": \"1234567890\",\n  \"orderNumber\": \"ORDER123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/order/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "order", "status"]
+						}
+					}
+				},
+				{
+					"name": "매수 테스트 주문",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/order/test/buy",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "order", "test", "buy"]
+						}
+					}
+				},
+				{
+					"name": "매도 테스트 주문",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/order/test/sell",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "order", "test", "sell"]
+						}
+					}
+				},
+				{
+					"name": "시장가 매수 테스트",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/order/test/market-buy",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "order", "test", "market-buy"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "주식 시세",
+			"item": [
+				{
+					"name": "주식 현재가 조회 (POST)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stockCode\": \"005930\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/price/current",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "price", "current"]
+						}
+					}
+				},
+				{
+					"name": "주식 현재가 조회 (GET)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/price/current/005930",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "price", "current", "005930"]
+						}
+					}
+				},
+				{
+					"name": "주식 일자별 시세 조회",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stockCode\": \"005930\",\n  \"startDate\": \"20231201\",\n  \"endDate\": \"20231207\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/price/daily",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "price", "daily"]
+						}
+					}
+				},
+				{
+					"name": "삼성전자 현재가 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/price/test/samsung",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "price", "test", "samsung"]
+						}
+					}
+				},
+				{
+					"name": "SK하이닉스 현재가 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/price/test/skhynix",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "price", "test", "skhynix"]
+						}
+					}
+				},
+				{
+					"name": "NAVER 현재가 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/price/test/naver",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "price", "test", "naver"]
+						}
+					}
+				},
+				{
+					"name": "삼성전자 일자별 시세 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/stock/price/test/samsung/daily",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "stock", "price", "test", "samsung", "daily"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "매매 기록",
+			"item": [
+				{
+					"name": "주문번호로 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/order/ORDER123456",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "order", "ORDER123456"]
+						}
+					}
+				},
+				{
+					"name": "계좌번호로 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/account/1234567890",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "account", "1234567890"]
+						}
+					}
+				},
+				{
+					"name": "종목코드로 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/stock/005930",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "stock", "005930"]
+						}
+					}
+				},
+				{
+					"name": "주문구분으로 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/type/매수",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "type", "매수"]
+						}
+					}
+				},
+				{
+					"name": "주문상태로 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/status/성공",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "status", "성공"]
+						}
+					}
+				},
+				{
+					"name": "계좌번호와 종목코드로 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/account/1234567890/stock/005930",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "account", "1234567890", "stock", "005930"]
+						}
+					}
+				},
+				{
+					"name": "기간별 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/period?startDateTime=2023-12-01T00:00:00&endDateTime=2023-12-07T23:59:59",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "period"],
+							"query": [
+								{
+									"key": "startDateTime",
+									"value": "2023-12-01T00:00:00"
+								},
+								{
+									"key": "endDateTime",
+									"value": "2023-12-07T23:59:59"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "에러가 발생한 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/errors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "errors"]
+						}
+					}
+				},
+				{
+					"name": "성공한 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/success",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "success"]
+						}
+					}
+				},
+				{
+					"name": "특정 계좌의 성공한 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/account/1234567890/success",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "account", "1234567890", "success"]
+						}
+					}
+				},
+				{
+					"name": "특정 종목의 성공한 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/stock/005930/success",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "stock", "005930", "success"]
+						}
+					}
+				},
+				{
+					"name": "매매 기록 통계 조회 (계좌별)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/statistics/account/1234567890",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "statistics", "account", "1234567890"]
+						}
+					}
+				},
+				{
+					"name": "매매 기록 통계 조회 (종목별)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/statistics/stock/005930",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "statistics", "stock", "005930"]
+						}
+					}
+				},
+				{
+					"name": "최근 매매 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/trading/records/recent?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "trading", "records", "recent"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "시세 조회 기록",
+			"item": [
+				{
+					"name": "종목코드로 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/stock/005930",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "stock", "005930"]
+						}
+					}
+				},
+				{
+					"name": "조회유형으로 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/type/현재가",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "type", "현재가"]
+						}
+					}
+				},
+				{
+					"name": "종목코드와 조회유형으로 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/stock/005930/type/현재가",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "stock", "005930", "type", "현재가"]
+						}
+					}
+				},
+				{
+					"name": "기간별 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/period?startDateTime=2023-12-01T00:00:00&endDateTime=2023-12-07T23:59:59",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "period"],
+							"query": [
+								{
+									"key": "startDateTime",
+									"value": "2023-12-01T00:00:00"
+								},
+								{
+									"key": "endDateTime",
+									"value": "2023-12-07T23:59:59"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "에러가 발생한 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/errors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "errors"]
+						}
+					}
+				},
+				{
+					"name": "성공한 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/success",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "success"]
+						}
+					}
+				},
+				{
+					"name": "특정 종목의 성공한 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/stock/005930/success",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "stock", "005930", "success"]
+						}
+					}
+				},
+				{
+					"name": "클라이언트 IP로 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/client/192.168.1.100",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "client", "192.168.1.100"]
+						}
+					}
+				},
+				{
+					"name": "시세 조회 통계 조회 (종목별)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/statistics/stock",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "statistics", "stock"]
+						}
+					}
+				},
+				{
+					"name": "최근 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/recent",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "recent"]
+						}
+					}
+				},
+				{
+					"name": "특정 종목의 최근 시세 조회 기록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/price-records/stock/005930/recent",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "price-records", "stock", "005930", "recent"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "해외 주식",
+			"item": [
+				{
+					"name": "해외 주식 현재가 조회 (POST)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stockCode\": \"AAPL\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/price/current",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "price", "current"]
+						}
+					}
+				},
+				{
+					"name": "해외 주식 현재가 조회 (GET)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/price/current/AAPL",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "price", "current", "AAPL"]
+						}
+					}
+				},
+				{
+					"name": "해외 주식 일자별 시세 조회",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stockCode\": \"AAPL\",\n  \"startDate\": \"2023-12-01\",\n  \"endDate\": \"2023-12-07\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/price/daily",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "price", "daily"]
+						}
+					}
+				},
+				{
+					"name": "애플 현재가 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/price/test/apple",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "price", "test", "apple"]
+						}
+					}
+				},
+				{
+					"name": "마이크로소프트 현재가 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/price/test/microsoft",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "price", "test", "microsoft"]
+						}
+					}
+				},
+				{
+					"name": "구글 현재가 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/price/test/google",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "price", "test", "google"]
+						}
+					}
+				},
+				{
+					"name": "애플 일자별 시세 조회 테스트",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/price/test/apple/daily",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "price", "test", "apple", "daily"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "해외 주식 주문",
+			"item": [
+				{
+					"name": "해외 주식 주문 실행",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountNumber\": \"FOREIGN123456\",\n  \"stockCode\": \"AAPL\",\n  \"orderType\": \"매수\",\n  \"quantity\": 10,\n  \"price\": 150.50,\n  \"priceType\": \"지정가\",\n  \"orderCategory\": \"일반\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/order/execute",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "order", "execute"]
+						}
+					}
+				},
+				{
+					"name": "해외 주식 주문 상태 조회",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountNumber\": \"FOREIGN123456\",\n  \"orderNumber\": \"FOREIGN_ORDER_123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/order/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "order", "status"]
+						}
+					}
+				},
+				{
+					"name": "애플 매수 테스트 주문",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/order/test/buy-apple",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "order", "test", "buy-apple"]
+						}
+					}
+				},
+				{
+					"name": "애플 매도 테스트 주문",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/order/test/sell-apple",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "order", "test", "sell-apple"]
+						}
+					}
+				},
+				{
+					"name": "마이크로소프트 시장가 매수 테스트",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/foreign-stock/order/test/buy-microsoft-market",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "foreign-stock", "order", "test", "buy-microsoft-market"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "자동매매",
+			"item": [
+				{
+					"name": "자동매매 엔진 초기화",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/initialize",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "initialize"]
+						}
+					}
+				},
+				{
+					"name": "자동매매 엔진 종료",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/shutdown",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "shutdown"]
+						}
+					}
+				},
+				{
+					"name": "전략 등록",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"strategyId\": \"CUSTOM_SAMSUNG\",\n  \"strategyName\": \"삼성전자 커스텀 전략\",\n  \"description\": \"사용자 정의 전략\",\n  \"enabled\": true,\n  \"stockCode\": \"005930\",\n  \"stockName\": \"삼성전자\",\n  \"totalInvestment\": 10000000,\n  \"maxPositionSize\": 0.1,\n  \"buyThreshold\": 30,\n  \"sellThreshold\": 70,\n  \"profitTarget\": 5,\n  \"stopLoss\": 3\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/strategies",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "strategies"]
+						}
+					}
+				},
+				{
+					"name": "전략 제거",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/strategies/CUSTOM_SAMSUNG",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "strategies", "CUSTOM_SAMSUNG"]
+						}
+					}
+				},
+				{
+					"name": "삼성전자 기본 전략 등록",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/strategies/default/samsung",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "strategies", "default", "samsung"]
+						}
+					}
+				},
+				{
+					"name": "SK하이닉스 보수적 전략 등록",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/strategies/conservative/000660",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "strategies", "conservative", "000660"]
+						}
+					}
+				},
+				{
+					"name": "NAVER 공격적 전략 등록",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/strategies/aggressive/035420",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "strategies", "aggressive", "035420"]
+						}
+					}
+				},
+				{
+					"name": "모든 종목 기본 전략 등록",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/strategies/default/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "strategies", "default", "all"]
+						}
+					}
+				},
+				{
+					"name": "현재 스케줄 정보 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/schedule/current",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "schedule", "current"]
+						}
+					}
+				},
+				{
+					"name": "모든 스케줄 정보 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/schedule/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "schedule", "all"]
+						}
+					}
+				},
+				{
+					"name": "KOSPI 상위 종목 목록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/stocks/top-kospi",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "stocks", "top-kospi"]
+						}
+					}
+				},
+				{
+					"name": "나스닥 상위 종목 목록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/stocks/top-nasdaq",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "stocks", "top-nasdaq"]
+						}
+					}
+				},
+				{
+					"name": "섹터별 종목 목록 조회 (국내)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/stocks/sector/전자",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "stocks", "sector", "전자"]
+						}
+					}
+				},
+				{
+					"name": "섹터별 종목 목록 조회 (해외)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/stocks/foreign-sector/Technology",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "stocks", "foreign-sector", "Technology"]
+						}
+					}
+				},
+				{
+					"name": "섹터 목록 조회 (국내)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/stocks/sectors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "stocks", "sectors"]
+						}
+					}
+				},
+				{
+					"name": "섹터 목록 조회 (해외)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/stocks/foreign-sectors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "stocks", "foreign-sectors"]
+						}
+					}
+				},
+				{
+					"name": "자동매매 상태 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auto-trading/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auto-trading", "status"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "백테스팅",
+			"item": [
+				{
+					"name": "백테스팅 실행",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stockCode\": \"005930\",\n  \"startDate\": \"2023-01-01\",\n  \"endDate\": \"2023-12-31\",\n  \"strategy\": \"RSI\",\n  \"initialCapital\": 10000000,\n  \"parameters\": {\n    \"rsiPeriod\": 14,\n    \"rsiOverbought\": 70,\n    \"rsiOversold\": 30\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/backtest/execute",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "backtest", "execute"]
+						}
+					}
+				},
+				{
+					"name": "MACD 전략 백테스팅",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stockCode\": \"005930\",\n  \"startDate\": \"2023-01-01\",\n  \"endDate\": \"2023-12-31\",\n  \"strategy\": \"MACD\",\n  \"initialCapital\": 10000000,\n  \"parameters\": {\n    \"fastPeriod\": 12,\n    \"slowPeriod\": 26,\n    \"signalPeriod\": 9\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/backtest/execute",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "backtest", "execute"]
+						}
+					}
+				},
+				{
+					"name": "SMA 전략 백테스팅",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stockCode\": \"005930\",\n  \"startDate\": \"2023-01-01\",\n  \"endDate\": \"2023-12-31\",\n  \"strategy\": \"SMA\",\n  \"initialCapital\": 10000000,\n  \"parameters\": {\n    \"shortPeriod\": 5,\n    \"longPeriod\": 20\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/backtest/execute",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "backtest", "execute"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "사용자 관리",
+			"item": [
+				{
+					"name": "회원가입",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"phoneNumber\": \"010-1234-5678\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/signup",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "signup"]
+						}
+					}
+				},
+				{
+					"name": "로그인",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "login"]
+						}
+					}
+				},
+				{
+					"name": "사용자 정보 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "profile"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+} 

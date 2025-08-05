@@ -28,4 +28,8 @@ logging:
   file:
     name: logs/application.log
     max-size: 100MB
-    max-history: 30 
+    max-history: 30
+
+newsapi:
+  api:
+    key: ${NEWSAPI_API_KEY} 
