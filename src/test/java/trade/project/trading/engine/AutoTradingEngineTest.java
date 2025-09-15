@@ -122,56 +122,27 @@ class AutoTradingEngineTest {
     }
 
     @Test
-    void testInitialize() {
-        // Given
+    void testInitializeDomestic() {
         when(stockPriceService.getCurrentPrice(any(StockPriceRequest.class), any()))
                 .thenReturn(testPriceResponse);
-
-        // When
-        autoTradingEngine.initialize();
-
-        // Then
-        // 초기화가 성공적으로 완료되었는지 확인
-        // 실제로는 private 메서드들을 테스트하기 어려우므로 기본 동작 확인
-        assertDoesNotThrow(() -> autoTradingEngine.initialize());
+        assertDoesNotThrow(() -> autoTradingEngine.initializeDomestic());
     }
 
     @Test
-    void testRegisterStrategy() {
-        // Given
-        String strategyId = "TEST_STRATEGY";
-
-        // When
-        autoTradingEngine.registerStrategy(testStrategy);
-
-        // Then
-        // 전략이 성공적으로 등록되었는지 확인
-        // 실제로는 private 필드에 접근할 수 없으므로 예외 발생 여부로 확인
-        assertDoesNotThrow(() -> autoTradingEngine.registerStrategy(testStrategy));
+    void testInitializeForeign() {
+        when(stockPriceService.getCurrentPrice(any(StockPriceRequest.class), any()))
+                .thenReturn(testPriceResponse);
+        assertDoesNotThrow(() -> autoTradingEngine.initializeForeign());
     }
 
     @Test
-    void testUnregisterStrategy() {
-        // Given
-        String strategyId = "TEST_STRATEGY";
-        autoTradingEngine.registerStrategy(testStrategy);
-
-        // When
-        autoTradingEngine.unregisterStrategy(strategyId);
-
-        // Then
-        // 전략이 성공적으로 제거되었는지 확인
-        assertDoesNotThrow(() -> autoTradingEngine.unregisterStrategy(strategyId));
+    void testShutdownDomestic() {
+        assertDoesNotThrow(() -> autoTradingEngine.shutdownDomestic());
     }
 
     @Test
-    void testShutdown() {
-        // When
-        autoTradingEngine.shutdown();
-
-        // Then
-        // 엔진이 성공적으로 종료되었는지 확인
-        assertDoesNotThrow(() -> autoTradingEngine.shutdown());
+    void testShutdownForeign() {
+        assertDoesNotThrow(() -> autoTradingEngine.shutdownForeign());
     }
 
     @Test
