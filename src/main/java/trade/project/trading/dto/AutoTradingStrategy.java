@@ -24,6 +24,7 @@ public class AutoTradingStrategy {
     private String strategyId;
     private String strategyName;
     private String description;
+    private String strategyType;
     private boolean enabled;
     
     // 시장 타입
@@ -103,6 +104,7 @@ public class AutoTradingStrategy {
                 .strategyId("DEFAULT_SAMSUNG")
                 .strategyName("삼성전자 기본 전략")
                 .description("삼성전자 대상 기본 자동매매 전략")
+                .strategyType("RSI")
                 .enabled(true)
                 .marketType(MarketType.DOMESTIC)
                 .targetStock(TopKospiStocks.SAMSUNG_ELECTRONICS)

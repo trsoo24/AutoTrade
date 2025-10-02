@@ -9,16 +9,11 @@ import trade.project.api.dto.StockOrderRequest;
 import trade.project.api.dto.StockOrderResponse;
 import trade.project.api.service.StockPriceService;
 import trade.project.api.service.StockOrderService;
-import trade.project.api.service.ForeignStockPriceService;
-import trade.project.api.service.ForeignStockOrderService;
-import trade.project.backtest.util.TechnicalIndicatorCalculator;
 import trade.project.trading.document.PriceQueryRecord;
 import trade.project.trading.dto.AutoTradingStrategy;
 import trade.project.trading.enums.TopKospiStocks;
 import trade.project.trading.enums.TopNasdaqStocks;
-import trade.project.trading.enums.TradingSchedule;
 import trade.project.trading.enums.MarketType;
-import trade.project.trading.service.TradingRecordService;
 import trade.project.trading.service.PriceQueryRecordService;
 
 import java.math.BigDecimal;
@@ -109,11 +104,10 @@ public class AutoTradingEngine {
         log.info("국내 자동매매 스케줄러 시작");
     }
 
-    // 전략별로 1분 내 분산 실행 (최대 초당 10건 제한)
     private void scheduleDomesticStrategiesSequentially() {
         int strategyCount = (int) domesticStrategies.values().stream().filter(AutoTradingStrategy::isEnabled).count();
         if (strategyCount == 0) return;
-        int intervalSec = Math.max(6, 60 / strategyCount); // 최소 6초 간격(10개면 6초, 5개면 12초)
+        int intervalSec = 60; // 1분 간격
         int idx = 0;
         for (AutoTradingStrategy strategy : domesticStrategies.values()) {
             if (!strategy.isEnabled()) continue;
@@ -356,19 +350,20 @@ public class AutoTradingEngine {
      * 기술적 지표 계산 (실전 트레이딩 표준)
      */
     private Map<String, BigDecimal> calculateTechnicalIndicators(AutoTradingStrategy strategy, StockPriceResponse priceResponse) {
-        List<PriceQueryRecord> priceHistory = priceQueryRecordService.findByStockCodeAndQueryType(
-            strategy.getStockCode(), "daily");
-        if (priceHistory.size() < 30) {
+        List<PriceQueryRecord> priceHistory = priceQueryRecordService.findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeAsc(strategy.getStockCode(), "daily");
+
+        if (priceHistory.size() < 30) { // 계산 위한 데이터 표본 수 부족
+            // TODO 기본 값 수정
             return getFallbackIndicators(priceResponse);
         }
-        List<PriceQueryRecord> recent = priceHistory.subList(0, Math.min(50, priceHistory.size()));
-        List<BigDecimal> closes = recent.stream().map(r -> new BigDecimal(r.getCurrentPrice())).toList();
-        List<BigDecimal> highs = recent.stream().map(r -> new BigDecimal(r.getHighPrice())).toList();
-        List<BigDecimal> lows = recent.stream().map(r -> new BigDecimal(r.getLowPrice())).toList();
+
+        List<BigDecimal> closes = priceHistory.stream().map(r -> new BigDecimal(r.getCurrentPrice())).toList();
+        List<BigDecimal> highs = priceHistory.stream().map(r -> new BigDecimal(r.getHighPrice())).toList();
+        List<BigDecimal> lows = priceHistory.stream().map(r -> new BigDecimal(r.getLowPrice())).toList();
 
         Map<String, BigDecimal> indicators = new HashMap<>();
-        // RSI(14) - Wilders Smoothing
-        indicators.put("RSI", calculateRSI_Wilders(closes, 14));
+        // RSI(14) - Wilders Smoothing -- 2025.10.01 RSI 알고리즘은 제거
+//        indicators.put("RSI", calculateRSI_Wilders(closes, 14));
         // EMA(12,26)
         List<BigDecimal> emaFastSeries = calculateEMA_Series(closes, 12);
         List<BigDecimal> emaSlowSeries = calculateEMA_Series(closes, 26);
@@ -480,50 +475,26 @@ public class AutoTradingEngine {
     private TradingSignal analyzeTradingSignal(AutoTradingStrategy strategy, StockPriceResponse priceResponse, 
                                              Map<String, BigDecimal> indicators, TradingStatus status) {
         BigDecimal currentPrice = new BigDecimal(priceResponse.getCurrentPrice());
-        BigDecimal rsi = indicators.get("RSI");
-        BigDecimal macd = indicators.get("MACD");
-        BigDecimal macdSignal = indicators.get("MACD_SIGNAL");
-        BigDecimal smaShort = indicators.get("SMA_SHORT");
-        BigDecimal smaLong = indicators.get("SMA_LONG");
-        BigDecimal bbUpper = indicators.get("BB_UPPER");
-        BigDecimal bbLower = indicators.get("BB_LOWER");
-        BigDecimal high20 = indicators.get("HIGH_20");
-        BigDecimal low20 = indicators.get("LOW_20");
 
-        // 다중 지표 조합: RSI, MACD, 이동평균, 볼린저밴드, 고가/저가 돌파
-        boolean buySignal = rsi.compareTo(strategy.getRsiOversold()) <= 0
-                && macd.compareTo(macdSignal) > 0
-                && smaShort.compareTo(smaLong) > 0
-                && currentPrice.compareTo(bbLower) <= 0
-                && currentPrice.compareTo(low20) <= 0;
-        // 매도 신호: 보유 수량이 0 이하이면 무조건 HOLD
+        // === 변경점 1: 전략 타입에 따라 다른 로직 사용 ===
+        String strategyType = strategy.getStrategyType(); // "RSI", "MACD", "SMA" 등
+
+        // 보유 수량이 없을 때만 매수 신호 체크
         if (status.currentPosition == null || status.currentPosition.compareTo(BigDecimal.ZERO) <= 0) {
-            if (buySignal) return TradingSignal.BUY;
-            return TradingSignal.HOLD;
+            if ("RSI".equalsIgnoreCase(strategyType)) {
+                return analyzeRSIStrategy(indicators, currentPrice, strategy);
+            } else if ("MACD".equalsIgnoreCase(strategyType)) {
+                return analyzeMACDStrategy(indicators, currentPrice, strategy);
+            } else if ("SMA".equalsIgnoreCase(strategyType)) {
+                return analyzeSMAStrategy(indicators, currentPrice, strategy);
+            } else {
+                // 기본 전략: RSI + 볼린저밴드 조합
+                return analyzeDefaultStrategy(indicators, currentPrice, strategy, status);
+            }
         }
-        boolean sellSignal = rsi.compareTo(strategy.getRsiOverbought()) >= 0
-                && macd.compareTo(macdSignal) < 0
-                && smaShort.compareTo(smaLong) < 0
-                && currentPrice.compareTo(bbUpper) >= 0
-                && currentPrice.compareTo(high20) >= 0;
 
-        // 리스크 관리: 익절/손절/트레일링스탑
-        BigDecimal profitRate = currentPrice.subtract(status.averagePrice)
-                .divide(status.averagePrice.equals(BigDecimal.ZERO) ? BigDecimal.ONE : status.averagePrice, 4, BigDecimal.ROUND_HALF_UP)
-                .multiply(new BigDecimal("100"));
-        boolean profitTargetReached = profitRate.compareTo(strategy.getProfitTarget()) >= 0;
-        boolean stopLossTriggered = profitRate.compareTo(strategy.getStopLoss().negate()) <= 0;
-        // 트레일링 스탑(최근 고점 대비 일정 % 하락 시 매도)
-        boolean trailingStop = false;
-        if (status.lastPrice != null && status.lastPrice.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal drop = status.lastPrice.subtract(currentPrice)
-                    .divide(status.lastPrice, 4, BigDecimal.ROUND_HALF_UP)
-                    .multiply(new BigDecimal("100"));
-            trailingStop = drop.compareTo(new BigDecimal("3")) >= 0; // 3% 이상 하락 시
-        }
-        if (buySignal) return TradingSignal.BUY;
-        if (sellSignal || profitTargetReached || stopLossTriggered || trailingStop) return TradingSignal.SELL;
-        return TradingSignal.HOLD;
+        // 보유 중일 때: 손절/익절 체크
+        return checkExitConditions(currentPrice, status, strategy);
     }
     
     /**
@@ -599,7 +570,138 @@ public class AutoTradingEngine {
         
         return (rsiOverbought && macdBearish && smaBearish) || profitTargetReached || stopLossTriggered || priceLimitOk;
     }
-    
+
+    /**
+     * === 추가: RSI 단독 전략 ===
+     * 장점: 단순하고 명확, 과매도 구간 매수
+     */
+    private TradingSignal analyzeRSIStrategy(Map<String, BigDecimal> indicators,
+                                             BigDecimal currentPrice, AutoTradingStrategy strategy) {
+        BigDecimal rsi = indicators.get("RSI");
+        BigDecimal bbLower = indicators.get("BB_LOWER");
+
+        // 매수: RSI 과매도 + 볼린저 하단 근접
+        if (rsi.compareTo(strategy.getRsiOversold()) <= 0 &&
+                currentPrice.compareTo(bbLower.multiply(new BigDecimal("1.05"))) <= 0) {
+            log.info("RSI 매수 신호: RSI={}, 현재가={}, BB하단={}", rsi, currentPrice, bbLower);
+            return TradingSignal.BUY;
+        }
+
+        return TradingSignal.HOLD;
+    }
+
+    /**
+     * === 추가: MACD 단독 전략 ===
+     * 장점: 추세 전환 포착
+     */
+    private TradingSignal analyzeMACDStrategy(Map<String, BigDecimal> indicators,
+                                              BigDecimal currentPrice, AutoTradingStrategy strategy) {
+        BigDecimal macd = indicators.get("MACD");
+        BigDecimal macdSignal = indicators.get("MACD_SIGNAL");
+        BigDecimal smaLong = indicators.get("SMA_LONG");
+
+        // 매수: MACD 골든크로스 + 장기선 위
+        if (macd.compareTo(macdSignal) > 0 &&
+                currentPrice.compareTo(smaLong) > 0) {
+            log.info("MACD 매수 신호: MACD={}, Signal={}, 현재가={}", macd, macdSignal, currentPrice);
+            return TradingSignal.BUY;
+        }
+
+        return TradingSignal.HOLD;
+    }
+
+    /**
+     * === 추가: SMA 단독 전략 ===
+     * 장점: 가장 단순, 장기 투자 적합
+     */
+    private TradingSignal analyzeSMAStrategy(Map<String, BigDecimal> indicators,
+                                             BigDecimal currentPrice, AutoTradingStrategy strategy) {
+        BigDecimal smaShort = indicators.get("SMA_SHORT");
+        BigDecimal smaLong = indicators.get("SMA_LONG");
+
+        // 매수: 골든크로스
+        if (smaShort.compareTo(smaLong) > 0 &&
+                currentPrice.compareTo(smaLong.multiply(new BigDecimal("1.02"))) >= 0) {
+            log.info("SMA 매수 신호: 단기={}, 장기={}, 현재가={}", smaShort, smaLong, currentPrice);
+            return TradingSignal.BUY;
+        }
+
+        return TradingSignal.HOLD;
+    }
+
+    /**
+     * === 추가: 기본 복합 전략 (2개 지표만 사용) ===
+     * 변경 이유: 기존 5개 지표 AND 조건은 실현 불가능
+     */
+    private TradingSignal analyzeDefaultStrategy(Map<String, BigDecimal> indicators,
+                                                 BigDecimal currentPrice,
+                                                 AutoTradingStrategy strategy,
+                                                 TradingStatus status) {
+        BigDecimal rsi = indicators.get("RSI");
+        BigDecimal bbLower = indicators.get("BB_LOWER");
+        BigDecimal macd = indicators.get("MACD");
+        BigDecimal macdSignal = indicators.get("MACD_SIGNAL");
+
+        // 매수: (RSI 과매도 OR 볼린저 하단) AND MACD 상승
+        boolean oversoldCondition = rsi.compareTo(strategy.getRsiOversold()) <= 0 ||
+                currentPrice.compareTo(bbLower) <= 0;
+        boolean macdBullish = macd.compareTo(macdSignal) > 0;
+
+        if (oversoldCondition && macdBullish) {
+            log.info("기본 전략 매수 신호: RSI={}, MACD={} > Signal={}", rsi, macd, macdSignal);
+            return TradingSignal.BUY;
+        }
+
+        return TradingSignal.HOLD;
+    }
+
+    /**
+     * === 수정: 청산 조건 (손절/익절/추세 전환) ===
+     * 변경 이유: 기존 코드에서 매도 조건이 매수와 동일하게 복잡함
+     */
+    private TradingSignal checkExitConditions(BigDecimal currentPrice,
+                                              TradingStatus status,
+                                              AutoTradingStrategy strategy) {
+        // === 수정: 평균가가 0이면 손익 계산 불가 ===
+        if (status.averagePrice == null || status.averagePrice.compareTo(BigDecimal.ZERO) <= 0) {
+            return TradingSignal.HOLD;
+        }
+
+        // 수익률 계산
+        BigDecimal profitRate = currentPrice.subtract(status.averagePrice)
+                .divide(status.averagePrice, 4, BigDecimal.ROUND_HALF_UP)
+                .multiply(new BigDecimal("100"));
+
+        // === 중요: 손절이 최우선 ===
+        if (profitRate.compareTo(strategy.getStopLoss().negate()) <= 0) {
+            log.warn("!!! 손절 실행: 수익률={}%, 목표={}%", profitRate, strategy.getStopLoss().negate());
+            return TradingSignal.SELL;
+        }
+
+        // 익절
+        if (profitRate.compareTo(strategy.getProfitTarget()) >= 0) {
+            log.info("익절 실행: 수익률={}%, 목표={}%", profitRate, strategy.getProfitTarget());
+            return TradingSignal.SELL;
+        }
+
+        // === 추가: 트레일링 스탑 (개선) ===
+        if (status.lastPrice != null && status.lastPrice.compareTo(BigDecimal.ZERO) > 0) {
+            // 최고가 대비 하락률 계산
+            BigDecimal dropFromPeak = status.lastPrice.subtract(currentPrice)
+                    .divide(status.lastPrice, 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal("100"));
+
+            // 수익 상태에서 3% 이상 하락 시 매도
+            if (profitRate.compareTo(BigDecimal.ZERO) > 0 &&
+                    dropFromPeak.compareTo(new BigDecimal("3")) >= 0) {
+                log.info("트레일링 스탑 실행: 고점 대비 {}% 하락", dropFromPeak);
+                return TradingSignal.SELL;
+            }
+        }
+
+        return TradingSignal.HOLD;
+    }
+
     /**
      * 매매 실행
      */
