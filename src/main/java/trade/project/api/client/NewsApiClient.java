@@ -1,10 +1,20 @@
 package trade.project.api.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.criteria.Root;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import trade.project.api.dto.NewsResponseDto;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class NewsApiClient {
@@ -13,6 +23,7 @@ public class NewsApiClient {
     private String apiKey;
 
     private static final String NEWS_API_URL = "https://newsapi.org/v2/everything";
+    private static final String TOSS_NEWS_API_URL = "https://wts-info-api.tossinvest.com/api/v2/forum/news/headline";
 
     public String searchNews() {
         RestTemplate restTemplate = new RestTemplate();
@@ -37,5 +48,30 @@ public class NewsApiClient {
         );
 
         return response.getBody();
+    }
+
+    // 토스 뉴스
+    public void searchTosNewsToss() throws JsonProcessingException {
+        RestTemplate restTemplate = new RestTemplate();
+
+        String url = UriComponentsBuilder.fromHttpUrl(TOSS_NEWS_API_URL)
+                .toUriString();
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                String.class
+        );
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        JsonNode newsArray = mapper.readTree(response.getBody())
+                .path("result")
+                .path("news");
+
+        List<NewsResponseDto> responseDtoList = mapper.convertValue(newsArray, new TypeReference<>() {});
+
+
     }
 } 
