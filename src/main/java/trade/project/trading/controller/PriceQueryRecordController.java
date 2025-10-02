@@ -67,7 +67,7 @@ public class PriceQueryRecordController {
         try {
             log.info("시세 조회 기록 조회 요청 (종목코드: {}, 조회유형: {})", stockCode, queryType);
             
-            List<PriceQueryRecord> records = priceQueryRecordService.findByStockCodeAndQueryType(stockCode, queryType);
+            List<PriceQueryRecord> records = priceQueryRecordService.findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeAsc(stockCode, queryType);
             
             return ResponseEntity.ok(ApiResponse.success(records));
         } catch (Exception e) {
