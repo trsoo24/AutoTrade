@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import trade.project.api.dto.StockPriceRequest;
 import trade.project.api.dto.StockPriceResponse;
-import trade.project.api.dto.StockOrderRequest;
 import trade.project.api.dto.StockOrderResponse;
 import trade.project.api.service.StockPriceService;
 import trade.project.api.service.StockOrderService;

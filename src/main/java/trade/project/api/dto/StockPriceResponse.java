@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -20,7 +21,7 @@ public class StockPriceResponse {
     private Integer openPrice; // 시가
     private Integer highPrice; // 고가
     private Integer lowPrice; // 저가
-    private Long tradingVolume; // 거래량
+    private BigDecimal tradingVolume; // 거래량
     private Long tradingValue; // 거래대금
     private Double changeRate; // 등락률
     private Integer changeAmount; // 등락폭

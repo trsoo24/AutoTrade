@@ -123,7 +123,8 @@ public class BacktestService {
             BigDecimal high = new BigDecimal((String) data.get("stck_hgpr"));
             BigDecimal low = new BigDecimal((String) data.get("stck_lwpr"));
             BigDecimal close = new BigDecimal((String) data.get("stck_prpr"));
-            Long volume = Long.parseLong((String) data.get("cntg_vol"));
+            long volume = Long.parseLong((String) data.get("cntg_vol"));
+            BigDecimal toBigVolume = BigDecimal.valueOf(volume);
             
             return StockData.builder()
                     .date(date)
@@ -131,7 +132,7 @@ public class BacktestService {
                     .high(high)
                     .low(low)
                     .close(close)
-                    .volume(volume)
+                    .volume(toBigVolume)
                     .adjustedClose(close) // 수정주가는 종가로 대체
                     .build();
                     
@@ -168,6 +169,7 @@ public class BacktestService {
                 BigDecimal close = price.multiply(BigDecimal.valueOf(1 + (Math.random() - 0.5) * 0.01));
                 
                 Long volume = (long) (1000000 + Math.random() * 5000000); // 100만~600만주
+                BigDecimal toBigVolume = BigDecimal.valueOf(volume);
                 
                 sampleData.add(StockData.builder()
                         .date(currentDate)
@@ -175,7 +177,7 @@ public class BacktestService {
                         .high(high)
                         .low(low)
                         .close(close)
-                        .volume(volume)
+                        .volume(toBigVolume)
                         .adjustedClose(close)
                         .build());
             }

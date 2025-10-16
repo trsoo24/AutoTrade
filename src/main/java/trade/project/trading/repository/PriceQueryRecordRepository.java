@@ -24,7 +24,7 @@ public interface PriceQueryRecordRepository extends MongoRepository<PriceQueryRe
     /**
      * 종목코드와 조회유형으로 시세 조회 기록 조회
      */
-    List<PriceQueryRecord> findByStockCodeAndQueryTypeOrderByQueryDateTimeDesc(String stockCode, String queryType);
+    List<PriceQueryRecord> findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeDesc(String stockCode, String queryType);
     
     /**
      * 기간별 시세 조회 기록 조회

@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.index.Indexed;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Document(collection = "price_query_records")
@@ -34,7 +35,7 @@ public class PriceQueryRecord {
     private Integer openPrice; // 시가
     private Integer highPrice; // 고가
     private Integer lowPrice; // 저가
-    private Long tradingVolume; // 거래량
+    private BigDecimal tradingVolume; // 거래량
     private Long tradingValue; // 거래대금
     private Double changeRate; // 등락률
     private Integer changeAmount; // 등락폭

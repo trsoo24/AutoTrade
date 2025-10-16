@@ -19,7 +19,7 @@ public class StockData {
     private BigDecimal high;
     private BigDecimal low;
     private BigDecimal close;
-    private Long volume;
+    private BigDecimal volume;
     private BigDecimal adjustedClose;
     
     // 기술적 지표 (계산된 값들을 저장)

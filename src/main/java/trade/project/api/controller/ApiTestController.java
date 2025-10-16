@@ -82,10 +82,10 @@ public class ApiTestController {
     /**
      * 계좌 잔고 조회 테스트
      */
-    @GetMapping("/account/balance/{accountNumber}")
-    public ApiResponse<Map<String, Object>> getAccountBalance(@PathVariable String accountNumber) {
+    @GetMapping("/account/balance")
+    public ApiResponse<Map<String, Object>> getAccountBalance() {
         try {
-            Map<String, Object> result = kisApiClient.getAccountBalance(accountNumber);
+            Map<String, Object> result = kisApiClient.getAccountBalance();
             return ApiResponse.success(result);
         } catch (Exception e) {
             log.error("계좌 잔고 조회 테스트 실패: {}", e.getMessage());

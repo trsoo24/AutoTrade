@@ -9,6 +9,8 @@ import trade.project.api.dto.StockPriceResponse;
 import trade.project.common.exception.ApiException;
 import trade.project.trading.service.PriceQueryRecordService;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.math.BigDecimal;
 import java.util.Map;
 
 @Slf4j
@@ -33,6 +35,7 @@ public class StockPriceService {
                         .currentPrice(parseInteger(output.get("stck_prpr")))
                         .changeAmount(parseInteger(output.get("prdy_vrss")))
                         .changeRate(parseDouble(output.get("prdy_ctrt")))
+                        .tradingVolume((BigDecimal) output.get("acml_vol"))
                         .highPrice(parseInteger(output.get("stck_hgpr")))
                         .lowPrice(parseInteger(output.get("stck_lwpr")))
                         .openPrice(parseInteger(output.get("stck_oprc")))
