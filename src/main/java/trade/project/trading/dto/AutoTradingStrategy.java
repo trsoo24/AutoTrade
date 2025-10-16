@@ -50,7 +50,8 @@ public class AutoTradingStrategy {
     private BigDecimal buyPriceLimit; // 매수 가격 한도
     private int buyQuantity; // 매수 수량
     private String buyPriceType; // 매수 가격 유형 (지정가/시장가)
-    
+    private String sellPriceType; // 매도 가격 유형 (지정가/시장가)
+
     // 매도 전략
     private BigDecimal sellThreshold; // 매도 임계값
     private BigDecimal sellPriceLimit; // 매도 가격 한도
@@ -95,52 +96,88 @@ public class AutoTradingStrategy {
     private LocalDateTime updatedAt;
     private String createdBy;
     private String updatedBy;
+
+    // === 계좌 연동 필드 추가 ===
+    private String accountNumber;           // 연동된 계좌번호
+    private boolean useDynamicInvestment;   // 동적 투자금액 사용 여부
+    private BigDecimal investmentRatio;     // 계좌 잔액 대비 투자 비율 (0.1 = 10%)
+    private BigDecimal minInvestment;       // 최소 투자금액
+    private BigDecimal maxInvestment;       // 최대 투자금액
     
     /**
      * 기본 전략 생성 (삼성전자)
      */
     public static AutoTradingStrategy createDefaultStrategy() {
         return AutoTradingStrategy.builder()
-                .strategyId("DEFAULT_SAMSUNG")
-                .strategyName("삼성전자 기본 전략")
-                .description("삼성전자 대상 기본 자동매매 전략")
-                .strategyType("RSI")
+                .strategyId("DEFAULT_SAMSUNG_MACD_SMA")
+                .strategyName("한라캐스트 MACD+SMA 실전전략")
+                .description("MACD와 SMA를 결합한 실전 자동매매 전략")
+                .strategyType("ADAPTIVE")  // RSI 대신 MACD_SMA로 변경
                 .enabled(true)
                 .marketType(MarketType.DOMESTIC)
                 .targetStock(TopKospiStocks.SAMSUNG_ELECTRONICS)
-                .stockCode("005930")
-                .stockName("삼성전자")
-                .totalInvestment(new BigDecimal("10000000")) // 1천만원
-                .maxPositionSize(new BigDecimal("0.1")) // 10%
-                .minOrderAmount(new BigDecimal("100000")) // 10만원
-                .maxOrderAmount(new BigDecimal("500000")) // 50만원
-                .buyThreshold(new BigDecimal("30")) // RSI 30 이하
-                .buyPriceLimit(new BigDecimal("80000")) // 8만원 이하
-                .buyQuantity(1)
-                .buyPriceType("지정가")
-                .sellThreshold(new BigDecimal("70")) // RSI 70 이상
-                .sellPriceLimit(new BigDecimal("90000")) // 9만원 이상
-                .profitTarget(new BigDecimal("5")) // 5% 수익 목표
-                .stopLoss(new BigDecimal("3")) // 3% 손절
+                .stockCode("086520")
+                .stockName("에코프로")
+
+                // === 실전 투자 설정 ===
+                .totalInvestment(new BigDecimal("10000000"))  // 1천만원
+                .maxPositionSize(new BigDecimal("0.6"))       // 최대 60% 투자
+                .minOrderAmount(new BigDecimal("100000"))      // 최소 10만원
+                .maxOrderAmount(new BigDecimal("1000000"))     // 최대 100만원
+
+                // === MACD 실전 파라미터 ===
+                .macdFastPeriod(12)      // 표준값
+                .macdSlowPeriod(26)      // 표준값
+                .macdSignalPeriod(9)     // 표준값
+
+                // === SMA 실전 파라미터 ===
+                .smaShortPeriod(5)       // 5일선 (단기)
+                .smaLongPeriod(20)       // 20일선 (중기)
+
+                // === 계좌 연동 설정 ===
+                .accountNumber(null)
+                .useDynamicInvestment(true)        // 동적 투자금액 사용
+                .investmentRatio(new BigDecimal("0.95"))  // 계좌의 95%만 사용
+                .minInvestment(new BigDecimal("100000"))  // 최소 10만원
+                .maxInvestment(new BigDecimal("200000")) // 최대 20만원
+
+                // totalInvestment는 실행시 동적으로 계산됨
+                .totalInvestment(BigDecimal.ZERO)
+
+                // 포지션 관리
+                .maxPositionSize(new BigDecimal("0.95"))  // 투자금의 95%
+                .buyQuantity(10)         // 10주씩 분할매수
+
+                // === 매수/매도 설정 ===
+                .buyPriceType("시장가")   // 시장가 주문
+                .sellPriceType("시장가")  // 시장가 주문
+                .buyPriceLimit(new BigDecimal("0"))    // 제한 없음
+                .sellPriceLimit(new BigDecimal("0"))   // 제한 없음
+
+                // === 손익관리 (실전 핵심) ===
+                .profitTarget(new BigDecimal("5"))     // 목표수익: 5%
+                .stopLoss(new BigDecimal("3"))         // 손절: -3%
+
+                // === 리스크 관리 ===
+                .maxDailyLoss(new BigDecimal("2"))     // 일일 최대손실: 2%
+                .maxDrawdown(new BigDecimal("10"))     // 최대 낙폭: 10%
+                .maxDailyTrades(4)                     // 일일 최대 4회 거래
+
+                // === 거래시간 설정 ===
+                .tradeDuringMarketHours(true)
+                .tradeDuringHighFrequency(false)       // 변동성 높은 시간 제외
+                .priceCheckInterval(60)                // 1분마다 체크
+
+                // RSI는 사용하지 않지만 기본값 설정
                 .rsiPeriod(14)
                 .rsiOverbought(new BigDecimal("70"))
                 .rsiOversold(new BigDecimal("30"))
-                .macdFastPeriod(12)
-                .macdSlowPeriod(26)
-                .macdSignalPeriod(9)
-                .smaShortPeriod(5)
-                .smaLongPeriod(20)
-                .tradeDuringMarketHours(true)
-                .tradeDuringHighFrequency(true)
-                .priceCheckInterval(60) // 1분
-                .maxDailyLoss(new BigDecimal("2")) // 2%
-                .maxDrawdown(new BigDecimal("10")) // 10%
-                .maxDailyTrades(10)
+
                 .enableNotifications(true)
                 .createdAt(LocalDateTime.now())
                 .build();
     }
-    
+
     /**
      * 보수적 전략 생성
      */
@@ -232,7 +269,7 @@ public class AutoTradingStrategy {
     /**
      * 해외 기본 전략 생성 (AAPL 등)
      */
-    public static AutoTradingStrategy createDefaultStrategy(TopNasdaqStocks stock) {
+    public static AutoTradingStrategy createDefaultForeignStrategy(TopNasdaqStocks stock) {
         return AutoTradingStrategy.builder()
                 .strategyId("DEFAULT_" + stock.getStockCode())
                 .strategyName(stock.getCompanyName() + " 기본 전략")
@@ -357,6 +394,77 @@ public class AutoTradingStrategy {
                 .maxDrawdown(new BigDecimal("15"))
                 .maxDailyTrades(20)
                 .enableNotifications(true)
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    // MACD 전용 전략 생성
+    public static AutoTradingStrategy createMACDStrategy(TopKospiStocks stock) {
+        return AutoTradingStrategy.builder()
+                .strategyId("MACD_" + stock.getStockCode())
+                .strategyName(stock.getStockName() + " MACD 전략")
+                .description("MACD 단독 실전 자동매매")
+                .strategyType("MACD")
+                .enabled(true)
+                .marketType(MarketType.DOMESTIC)
+                .targetStock(stock)
+                .stockCode(stock.getStockCode())
+                .stockName(stock.getStockName())
+
+                .totalInvestment(new BigDecimal("10000000"))
+                .maxPositionSize(new BigDecimal("0.5"))
+                .buyQuantity(5)
+
+                // MACD 파라미터
+                .macdFastPeriod(12)
+                .macdSlowPeriod(26)
+                .macdSignalPeriod(9)
+
+                // 손익관리
+                .profitTarget(new BigDecimal("4"))
+                .stopLoss(new BigDecimal("2.5"))
+
+                .maxDailyTrades(3)
+                .maxDailyLoss(new BigDecimal("1.5"))
+
+                .buyPriceType("시장가")
+                .sellPriceType("시장가")
+
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    // SMA 전용 전략 생성
+    public static AutoTradingStrategy createSMAStrategy(TopKospiStocks stock) {
+        return AutoTradingStrategy.builder()
+                .strategyId("SMA_" + stock.getStockCode())
+                .strategyName(stock.getStockName() + " SMA 전략")
+                .description("이동평균 실전 자동매매")
+                .strategyType("SMA")
+                .enabled(true)
+                .marketType(MarketType.DOMESTIC)
+                .targetStock(stock)
+                .stockCode(stock.getStockCode())
+                .stockName(stock.getStockName())
+
+                .totalInvestment(new BigDecimal("10000000"))
+                .maxPositionSize(new BigDecimal("0.4"))
+                .buyQuantity(5)
+
+                // SMA 파라미터
+                .smaShortPeriod(5)
+                .smaLongPeriod(20)
+
+                // 손익관리
+                .profitTarget(new BigDecimal("6"))
+                .stopLoss(new BigDecimal("3"))
+
+                .maxDailyTrades(2)
+                .maxDailyLoss(new BigDecimal("2"))
+
+                .buyPriceType("지정가")  // SMA는 지정가 사용
+                .sellPriceType("지정가")
+
                 .createdAt(LocalDateTime.now())
                 .build();
     }
