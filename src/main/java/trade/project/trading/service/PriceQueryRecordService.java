@@ -175,9 +175,9 @@ public class PriceQueryRecordService {
     /**
      * 종목코드와 조회유형으로 시세 조회 기록 조회
      */
-    public List<PriceQueryRecord> findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeAsc(String stockCode, String queryType) {
+    public List<PriceQueryRecord> findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeDesc(String stockCode, String queryType) {
         log.info("종목 시세 조회합니다. 종목 코드 : {}", stockCode);
-        return priceQueryRecordRepository.findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeAsc(stockCode, queryType);
+        return priceQueryRecordRepository.findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeDesc(stockCode, queryType);
     }
 
     /**
@@ -261,7 +261,7 @@ public class PriceQueryRecordService {
      * 특정 종목의 현재가 조회 기록만 조회
      */
     public List<PriceQueryRecord> findCurrentPriceRecordsByStock(String stockCode) {
-        return priceQueryRecordRepository.findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeAsc(stockCode, "current");
+        return priceQueryRecordRepository.findTop50ByStockCodeAndQueryTypeOrderByQueryDateTimeDesc(stockCode, "current");
     }
 
     /**
