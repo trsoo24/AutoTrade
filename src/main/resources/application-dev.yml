@@ -20,6 +20,7 @@ kis:
     base-url: https://openapi.koreainvestment.com:9443
     app-key: ${KIS_APP_KEY}
     app-secret: ${KIS_APP_SECRET}
+    account-number: ${KIS_ACCOUNT_NUMBER}
 
 naver:
   api:
@@ -29,10 +30,10 @@ naver:
 # 로깅 설정 (개발용 - 상세 로그)
 logging:
   level:
-    trade.project: DEBUG
-    trade.project.common.client: DEBUG
-    trade.project.api.client: DEBUG
-    org.springframework.web.reactive.function.client: DEBUG
+    trade.project: INFO
+    trade.project.common.client: INFO
+    trade.project.api.client: INFO
+    org.springframework.web.reactive.function.client: INFO
     root: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
