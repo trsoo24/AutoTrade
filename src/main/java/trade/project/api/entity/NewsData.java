@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.*;
+import trade.project.api.dto.NewsResponseDto;
 
 import java.time.LocalDateTime;
 
@@ -25,4 +26,15 @@ public class NewsData {
     private String imageUrl;
     private String agencyName;
     private String nation;
+
+    public static NewsData toEntity(NewsResponseDto dto) {
+        return NewsData.builder()
+                .createDt(dto.getCreateDt())
+                .newsId(dto.getNewsId())
+                .title(dto.getTitle())
+                .contentText(dto.getContentText())
+                .imageUrl(dto.getImageUrl())
+                .nation(dto.getNation())
+                .build();
+    }
 }
