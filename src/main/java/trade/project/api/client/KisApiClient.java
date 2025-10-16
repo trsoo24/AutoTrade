@@ -29,6 +29,9 @@ public class KisApiClient {
     @Value("${kis.api.app-secret}")
     private String appSecret;
 
+    @Value("${kis.api.account-number}")
+    private String accountNumber;
+
     // 토큰 캐싱을 위한 필드
     private String cachedAccessToken;
     private LocalDateTime tokenExpiryTime;
@@ -214,27 +217,41 @@ public class KisApiClient {
     /**
      * 계좌 잔고 조회
      */
-    public Map<String, Object> getAccountBalance(String accountNumber) {
+    public Map<String, Object> getAccountBalance() {
+        Map<String, Object> response = new HashMap<>();
+
         try {
             String url = baseUrl + ACCOUNT_BALANCE_ENDPOINT;
             
             Map<String, String> headers = getAuthHeaders();
             headers.put("tr_id", TR_ID_ACCOUNT_BALANCE);
+            int substring = accountNumber.indexOf("-");
+            String cano = accountNumber.substring(0, substring);
+            String acntPrtCd = accountNumber.substring(substring + 1);
             
             Map<String, String> queryParams = new HashMap<>();
-            queryParams.put("FID_COND_MRKT_DIV_CODE", "J");
-            queryParams.put("FID_INPUT_ACNT_NO", accountNumber);
-            queryParams.put("FID_INPUT_PRICE_1", "");
-            queryParams.put("FID_INPUT_PRICE_2", "");
-            queryParams.put("FID_VOL_CNT", "");
+            queryParams.put("CANO", cano);
+            queryParams.put("ACNT_PRDT_CD", acntPrtCd);
+            queryParams.put("AFHR_FLPR_YN", "N");
+            queryParams.put("INQR_DVSN", "02");
+            queryParams.put("UNPR_DVSN", "01");
+            queryParams.put("OFL_YN", "");
+            queryParams.put("FUND_STTL_ICLD_YN", "Y");
+            queryParams.put("FNCG_AMT_AUTO_RDPT_YN", "N");
+            queryParams.put("PRCS_DVSN", "00");
+            queryParams.put("CTX_AREA_FK100", "");
+            queryParams.put("CTX_AREA_NK100", "");
 
             String fullUrl = url + "?" + buildQueryString(queryParams);
             
-            return baseRestClient.get(fullUrl, headers, Map.class);
+            response = baseRestClient.get(fullUrl, headers, Map.class);
         } catch (Exception e) {
             log.error("계좌 잔고 조회 중 오류 발생: {}", e.getMessage());
             throw new ApiException("계좌 잔고 조회 실패", e);
+        } finally {
+            response.put("ACC_NUM", accountNumber);
         }
+        return response;
     }
 
     /**
@@ -306,4 +323,8 @@ public class KisApiClient {
         }
         return sb.toString();
     }
-} 
+
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+}

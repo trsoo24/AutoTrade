@@ -163,7 +163,7 @@ class KisApiClientTest {
                 .thenReturn(expectedResponse);
 
         // When
-        Map<String, Object> result = kisApiClient.getAccountBalance(accountNumber);
+        Map<String, Object> result = kisApiClient.getAccountBalance();
 
         // Then
         assertNotNull(result);
